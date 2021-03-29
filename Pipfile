@@ -8,6 +8,7 @@ name = "pypi"
 isoxmlviz = {editable = true, path = "."}
 
 [dev-packages]
+twine = "*"
 
 [requires]
 python_version = "3.9"
@@ -15,6 +16,8 @@ python_version = "3.9"
 [scripts]
 build_update="python -m pip install --upgrade build"
 build="python -m build"
+twine_upload_test="twine upload --repository testpypi dist/*"
+twine_upload="twine upload dist/*"
 #Mac Big Sur
 # use export SYSTEM_VERSION_COMPAT=1   https://github.com/pypa/pipenv/issues/4564
 # and as of Jan 11, 2021 only python 3.8 works

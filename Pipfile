@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+# install using pipenv install '-e .'
+
+[packages]
+isoxmlviz = {editable = true, path = "."}
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"
+
+[scripts]
+build_update="python -m pip install --upgrade build"
+build="python -m build"
+
+#Mac Big Sur
+# use export SYSTEM_VERSION_COMPAT=1   https://github.com/pypa/pipenv/issues/4564
+# and as of Jan 11, 2021 only python 3.8 works

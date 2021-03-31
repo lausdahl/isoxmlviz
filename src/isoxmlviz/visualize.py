@@ -2,7 +2,7 @@ import argparse
 import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
-
+import sys
 import pymap3d
 import shapely.geometry as SHP
 from descartes.patch import PolygonPatch
@@ -43,12 +43,16 @@ def main():
         if args.file.endswith(".zip"):
             with zipfile.ZipFile(args.file, 'r') as zip:
                 for fname in zip.namelist():
-                    if fname.endswith("TASKDATA.XML"):
+                    if fname.endswith("TASKDATA.XML") or fname.endswith("TASKDATA.xml"):
+                        if fname.endswith("TASKDATA.xml"):
+                            print("Invalid case in filename: '%s'" % fname,file=sys.stderr)
                         with zip.open(fname) as f:
                             print(fname)
                             tree = ET.parse(f)
                             show_task_file(fname.replace('/', '_'), tree, save_pdf)
         else:
+            if args.file.endswith("TASKDATA.xml"):
+                print("Invalid case in filename: '%s'" % args.file,file=sys.stderr)
             tree = ET.parse(args.file)
             show_task_file(Path(args.file).name, tree, save_pdf)
 
@@ -144,7 +148,7 @@ def plot_all_lsg(ax, parent_map, ref, root):
             base_line_string = LineString([(p[0], p[1]) for p in points])
 
             if parent.tag == "GPN":
-                width = int(line.attrib.get("C")) / 1000
+                width = int(line.attrib.get("C")) / 1000 if "C" in line.attrib.keys() else 1
                 number_of_swaths_left = 0
                 number_of_swaths_right = 0
 
@@ -207,15 +211,17 @@ def plot_all_lsg(ax, parent_map, ref, root):
                 #                   boundary_polygons]:
                 #         ax.add_patch(patch)
 
-
                 # https://stackoverflow.com/questions/19877666/add-legends-to-linecollection-plot
                 patch = LineCollection(extract_lines_within(base_line_string, boundary_polygons), linewidths=1.5,
                                        edgecolors="goldenrod", zorder=7)
                 ax.add_collection(patch)
-
                 # patch = LineCollection([base_line_string], linewidths=1.5,
                 #                        edgecolors="black", zorder=6,linestyle="--")
                 # ax.add_collection(patch)
+            else:
+                patch = LineCollection([base_line_string], linewidths=1.5,
+                                       edgecolors="goldenrod", zorder=7)
+                ax.add_collection(patch)
         elif type == 9:  # obstacle
             # its a polygon
             polygon = SHP.Polygon(points)

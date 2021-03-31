@@ -34,6 +34,9 @@ extract line segments from a line and a list of polygon restricting the line to 
 
 def extract_lines_within(base_line: LineString, polygons: list[Polygon]):
     lines = [base_line]
+    if len(polygons) == 0:
+        return lines
+
     for p in polygons:
         lines = [extract_line_within(line, p) for line in lines]
     return [item for sublist in lines for item in sublist]

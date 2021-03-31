@@ -48,6 +48,9 @@ def extract_line_within(base_line: LineString, polygon: Polygon):
     inter2 = base_line.intersection(polygon.boundary)
     lines = []
 
+    # from matplotlib import pyplot as plt
+    # plt.scatter([p.coords.xy[0] for p in inter2], [p.coords.xy[1] for p in inter2], color="red")
+
     expanded_points = []
 
     interpolated_points = []
@@ -63,7 +66,7 @@ def extract_line_within(base_line: LineString, polygon: Polygon):
 
         # check for points between and add them with key as distance from a
         points_between = [(Point(a).distance(Point(p)), p) for p in interpolated_points if
-                          is_point_on_line(a, b, p.coords[0])]
+                          is_point_on_line(a, b, p.coords[0]) and LineString((a, b)).distance(Point(p)) < 0.01]
 
         # sort the points between with distance from a
         points_between.sort(key=lambda x: x[0])
@@ -71,6 +74,7 @@ def extract_line_within(base_line: LineString, polygon: Polygon):
         for p in points_between:
             # add point between in the order of distance between
             expanded_points.append(p[1])
+            interpolated_points = [g for g in interpolated_points if g != p[1]]
 
         expanded_points.append(b)
 

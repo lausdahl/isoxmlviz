@@ -200,10 +200,22 @@ def plot_all_lsg(ax, parent_map, ref, root):
                 # else:
                 #     ax.plot([p[0] for p in points], [p[1] for p in points], color="goldenrod")
 
+                # if len(boundary_polygons) > 0:
+                #     for patch in [PolygonPatch(ggg, alpha=0.1, zorder=6, facecolor="pink", linewidth=2, fill=False,
+                #                                hatch="...")
+                #                   for ggg in
+                #                   boundary_polygons]:
+                #         ax.add_patch(patch)
+
+
                 # https://stackoverflow.com/questions/19877666/add-legends-to-linecollection-plot
                 patch = LineCollection(extract_lines_within(base_line_string, boundary_polygons), linewidths=1.5,
                                        edgecolors="goldenrod", zorder=7)
                 ax.add_collection(patch)
+
+                # patch = LineCollection([base_line_string], linewidths=1.5,
+                #                        edgecolors="black", zorder=6,linestyle="--")
+                # ax.add_collection(patch)
         elif type == 9:  # obstacle
             # its a polygon
             polygon = SHP.Polygon(points)

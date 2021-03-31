@@ -3,3 +3,4 @@ dist
 **/**egg-info*
 *.pdf
 .idea/
+__pycache__/

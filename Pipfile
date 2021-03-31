@@ -6,6 +6,8 @@ name = "pypi"
 
 [packages]
 isoxmlviz = {editable = true, path = "."}
+descartes = "*"
+figures = "*"
 
 [dev-packages]
 twine = "*"
@@ -14,6 +16,7 @@ twine = "*"
 python_version = "3.9"
 
 [scripts]
+test="python -m unittest discover -v -s tests"
 build_update="python -m pip install --upgrade build"
 build="python -m build"
 twine_upload_test="twine upload --repository testpypi dist/*"

@@ -33,6 +33,7 @@ def main():
     options = argparse.ArgumentParser(prog="isoxmlviz")
     options.add_argument("-file", dest="file", type=str, required=True, help='Path to a isoxml task file XML or ZIP')
     options.add_argument("-p", "--pdf", dest="pdf", action="store_true", required=False, help='Write figure to pdf')
+    options.add_argument("-vf", "--version-filter", dest="version_prefix", required=False, help='Filter on version')
     args = options.parse_args()
 
     save_pdf = False
@@ -44,21 +45,26 @@ def main():
             with zipfile.ZipFile(args.file, 'r') as zip:
                 for fname in zip.namelist():
                     if fname.endswith("TASKDATA.XML") or fname.endswith("TASKDATA.xml"):
-                        if fname.endswith("TASKDATA.xml"):
-                            print("Invalid case in filename: '%s'" % fname,file=sys.stderr)
+                        if fname.endswith("TASKDATA.xml") or  fname!='TASKDATA/TASKDATA.XML':
+                            print("Invalid case in filename: '%s'" % fname, file=sys.stderr)
                         with zip.open(fname) as f:
                             print(fname)
                             tree = ET.parse(f)
-                            show_task_file(fname.replace('/', '_'), tree, save_pdf)
+                            show_task_file(args.version_prefix, fname.replace('/', '_'), tree, save_pdf)
         else:
             if args.file.endswith("TASKDATA.xml"):
-                print("Invalid case in filename: '%s'" % args.file,file=sys.stderr)
+                print("Invalid case in filename: '%s'" % args.file, file=sys.stderr)
             tree = ET.parse(args.file)
-            show_task_file(Path(args.file).name, tree, save_pdf)
+            show_task_file(args.version_prefix, Path(args.file).name, tree, save_pdf)
 
 
-def show_task_file(name, tree, save_pdf: bool):
+def show_task_file(version_prefix, name, tree, save_pdf: bool):
     root = tree.getroot()
+
+    if version_prefix is not None:
+        if version_prefix not in (root.attrib.get("VersionMajor") + "." + root.attrib.get("VersionMinor")):
+            return
+
     parent_map = {c: p for p in tree.iter() for c in p}
     ref_point_element = root.find(".//PNT").iter().__next__()
     ref = pnt_to_pair(ref_point_element)

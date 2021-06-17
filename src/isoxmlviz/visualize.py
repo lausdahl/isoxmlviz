@@ -9,7 +9,7 @@ from descartes.patch import PolygonPatch
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection, LineCollection
 from shapely.geometry import LineString, JOIN_STYLE
-
+import math
 from isoxmlviz.LineStringUtil import extract_lines_within
 
 ell_wgs84 = pymap3d.Ellipsoid('wgs84')
@@ -34,6 +34,8 @@ def main():
     options.add_argument("-file", dest="file", type=str, required=True, help='Path to a isoxml task file XML or ZIP')
     options.add_argument("-p", "--pdf", dest="pdf", action="store_true", required=False, help='Write figure to pdf')
     options.add_argument("-vf", "--version-filter", dest="version_prefix", required=False, help='Filter on version')
+    options.add_argument("-gpn", "--gpn-filter", dest="gpn_filter", required=False, help='Filter on GPN', type=str,
+                         nargs='+', default=None)
     args = options.parse_args()
 
     save_pdf = False
@@ -45,20 +47,21 @@ def main():
             with zipfile.ZipFile(args.file, 'r') as zip:
                 for fname in zip.namelist():
                     if fname.endswith("TASKDATA.XML") or fname.endswith("TASKDATA.xml"):
-                        if fname.endswith("TASKDATA.xml") or  fname!='TASKDATA/TASKDATA.XML':
+                        if fname.endswith("TASKDATA.xml") or fname != 'TASKDATA/TASKDATA.XML':
                             print("Invalid case in filename: '%s'" % fname, file=sys.stderr)
                         with zip.open(fname) as f:
                             print(fname)
                             tree = ET.parse(f)
-                            show_task_file(args.version_prefix, fname.replace('/', '_'), tree, save_pdf)
+                            show_task_file(args.version_prefix, fname.replace('/', '_'), tree, save_pdf,
+                                           gpn_filter=args.gpn_filter)
         else:
             if args.file.endswith("TASKDATA.xml"):
                 print("Invalid case in filename: '%s'" % args.file, file=sys.stderr)
             tree = ET.parse(args.file)
-            show_task_file(args.version_prefix, Path(args.file).name, tree, save_pdf)
+            show_task_file(args.version_prefix, Path(args.file).name, tree, save_pdf, gpn_filter=args.gpn_filter)
 
 
-def show_task_file(version_prefix, name, tree, save_pdf: bool):
+def show_task_file(version_prefix, name, tree, save_pdf: bool, gpn_filter=None):
     root = tree.getroot()
 
     if version_prefix is not None:
@@ -70,7 +73,7 @@ def show_task_file(version_prefix, name, tree, save_pdf: bool):
     ref = pnt_to_pair(ref_point_element)
     ax = plt.gca()
     plot_all_pln(ax, parent_map, ref, root)
-    plot_all_lsg(ax, parent_map, ref, root)
+    plot_all_lsg(ax, parent_map, ref, root, gpn_filter=gpn_filter)
 
     plt.legend(loc="upper left")
     ax.axis("equal")
@@ -134,7 +137,7 @@ def plot_all_pln(ax, parent_map, ref, root):
         ax.add_patch(patch)
 
 
-def plot_all_lsg(ax, parent_map, ref, root):
+def plot_all_lsg(ax, parent_map, ref, root, gpn_filter=None):
     for line in root.findall(".//LSG"):
         print("Processing line '%s'" % line.attrib.get("B"))
         points_elements = line.findall("./PNT")
@@ -151,9 +154,35 @@ def plot_all_lsg(ax, parent_map, ref, root):
 
             parent = parent_map[line]
 
-            base_line_string = LineString([(p[0], p[1]) for p in points])
-
             if parent.tag == "GPN":
+
+                if gpn_filter is not None and parent.attrib.get("A") not in gpn_filter:
+                    continue
+
+                if not "C" in parent.attrib.keys():
+                    print("Invalid GPN: " + str(parent))
+                    continue
+
+                gpn_type = int(parent.attrib.get("C"))
+
+                if not gpn_type in [1, 2, 3, 5]:
+                    print("GPN %d not implemented" % gpn_type)
+                    continue
+
+                if gpn_type == 2:
+                    # calculate second point
+                    if "G" not in parent.attrib.keys():
+                        print("A+ missing angle")
+                        continue
+                    angle = float(parent.attrib.get("G"))
+                    length = 10
+                    endy = points[0][1] + length * math.sin(math.radians(angle))
+                    endx = points[0][0] + length * math.cos(math.radians(angle))
+                    p = (endx, endy)
+                    points.append(p)
+
+                base_line_string = LineString([(p[0], p[1]) for p in points])
+
                 width = int(line.attrib.get("C")) / 1000 if "C" in line.attrib.keys() else 1
                 number_of_swaths_left = 0
                 number_of_swaths_right = 0
@@ -225,6 +254,10 @@ def plot_all_lsg(ax, parent_map, ref, root):
                 #                        edgecolors="black", zorder=6,linestyle="--")
                 # ax.add_collection(patch)
             else:
+                if len(points) < 2:
+                    print("Too few points in line skipping: " + str(line))
+                    continue
+                base_line_string = LineString([(p[0], p[1]) for p in points])
                 patch = LineCollection([base_line_string], linewidths=1.5,
                                        edgecolors="goldenrod", zorder=7)
                 ax.add_collection(patch)

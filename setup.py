@@ -69,7 +69,7 @@ setup(
     #
     # This field corresponds to the "Home-Page" metadata field:
     # https://packaging.python.org/specifications/core-metadata/#home-page-optional
-    #url='',  # Optional
+    # url='',  # Optional
 
     # This should be your name or the name of the organization which owns the
     # project.
@@ -142,7 +142,7 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['matplotlib', 'pymap3d', 'shapely'],  # Optional
+    install_requires=['matplotlib', 'pymap3d', 'shapely', 'descartes'],  # Optional
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"

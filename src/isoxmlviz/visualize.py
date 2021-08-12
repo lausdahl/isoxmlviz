@@ -263,9 +263,13 @@ def plot_all_lsg(ax, parent_map, ref, root, gpn_filter=None):
                 ax.add_collection(patch)
         elif type == 9:  # obstacle
             # its a polygon
-            polygon = SHP.Polygon(points)
-            patch = PatchCollection([polygon], linewidths=1, edgecolors="none", facecolor="red", alpha=0.3)
-            ax.add_patch(patch)
+            # polygon = SHP.Polygon(points)
+            # patch = PatchCollection([polygon], linewidths=1, edgecolors="none", facecolor="red", alpha=0.3)
+            # ax.add_patch(patch)
+            base_line_string = LineString([(p[0], p[1]) for p in points])
+            patch = LineCollection([base_line_string], linewidths=1.5,
+                                   edgecolors="red", zorder=7)
+            ax.add_collection(patch)
         else:
             designator = line.attrib.get("B")
             if designator:

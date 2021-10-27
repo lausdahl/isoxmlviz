@@ -33,6 +33,10 @@ def main():
     options = argparse.ArgumentParser(prog="isoxmlviz")
     options.add_argument("-file", dest="file", type=str, required=True, help='Path to a isoxml task file XML or ZIP')
     options.add_argument("-p", "--pdf", dest="pdf", action="store_true", required=False, help='Write figure to pdf')
+    options.add_argument("-hide", "--hide", dest="hide", action="store_true", required=False, help='Hide plot')
+    options.add_argument("-svg", "--svg", dest="svg", action="store_true", required=False, help='Write figure to svg')
+    options.add_argument("-compact", "--compact-subplot", dest="compact", action="store_true", required=False,
+                         help='Compact plot using a subplot for each part field')
     options.add_argument("-vf", "--version-filter", dest="version_prefix", required=False, help='Filter on version')
     options.add_argument("-gpn", "--gpn-filter", dest="gpn_filter", required=False, help='Filter on GPN', type=str,
                          nargs='+', default=None)
@@ -41,6 +45,14 @@ def main():
     save_pdf = False
     if args.pdf:
         save_pdf = True
+
+    save_svg = False
+    if args.svg:
+        save_svg = True
+
+    hide_plot = False
+    if args.hide:
+        hide_plot = True
 
     if args.file:
         if args.file.endswith(".zip"):
@@ -53,15 +65,18 @@ def main():
                             print(fname)
                             tree = ET.parse(f)
                             show_task_file(args.version_prefix, fname.replace('/', '_'), tree, save_pdf,
-                                           gpn_filter=args.gpn_filter)
+                                           gpn_filter=args.gpn_filter, save_svg=save_svg, hide=hide_plot,
+                                           use_subplot=args.compact)
         else:
             if args.file.endswith("TASKDATA.xml"):
                 print("Invalid case in filename: '%s'" % args.file, file=sys.stderr)
             tree = ET.parse(args.file)
-            show_task_file(args.version_prefix, Path(args.file).name, tree, save_pdf, gpn_filter=args.gpn_filter)
+            show_task_file(args.version_prefix, Path(args.file).name, tree, save_pdf, gpn_filter=args.gpn_filter,
+                           save_svg=save_svg, hide=hide_plot, use_subplot=args.compact)
 
 
-def show_task_file(version_prefix, name, tree, save_pdf: bool, gpn_filter=None):
+def show_task_file(version_prefix, name, tree, save_pdf: bool = False, save_svg: bool = False, hide=False,
+                   gpn_filter=None, use_subplot=False):
     root = tree.getroot()
 
     if version_prefix is not None:
@@ -71,16 +86,46 @@ def show_task_file(version_prefix, name, tree, save_pdf: bool, gpn_filter=None):
     parent_map = {c: p for p in tree.iter() for c in p}
     ref_point_element = root.find(".//PNT").iter().__next__()
     ref = pnt_to_pair(ref_point_element)
-    ax = plt.gca()
-    plot_all_pln(ax, parent_map, ref, root)
-    plot_all_lsg(ax, parent_map, ref, root, gpn_filter=gpn_filter)
+    part_fields = root.findall(".//PFD")
 
-    plt.legend(loc="upper left")
-    ax.axis("equal")
-    ax.axis("off")
+    if not use_subplot or len(part_fields) == 1:
+        fig = plt.figure()
+        axs = plt.gca()
+        part_fields_ax = zip([axs for i in range(0, len(part_fields))], part_fields)
+    else:
+
+        n = len(part_fields)
+        if n > 2:
+            cols = 3
+        else:
+            cols = 2
+        fig, axes = plt.subplots(nrows=round(len(part_fields) / cols), ncols=cols)
+        part_fields_ax = zip(axes.flat, part_fields)
+
+    for (ax, pfd) in part_fields_ax:
+        if use_subplot:
+            ax.title.set_text(pfd.attrib.get("C"))
+        plot_all_pln(ax, parent_map, ref, pfd)
+        plot_all_lsg(ax, parent_map, ref, pfd, gpn_filter=gpn_filter)
+
+        ax.axis("equal")
+        ax.axis("off")
+    fig.tight_layout()
+    # plt.legend(loc="upper left")
+
     if save_pdf:
         plt.savefig(name + ".pdf")
-    plt.show()
+
+    if save_svg:
+        plt.savefig(name + ".svg")
+
+    if not hide:
+        plt.show()
+
+    plt.figure().clear()
+    plt.close()
+    plt.cla()
+    plt.clf()
 
 
 def get_line_points(ref, line: ET.ElementTree):

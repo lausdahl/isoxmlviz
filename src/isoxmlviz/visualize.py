@@ -8,7 +8,7 @@ import shapely.geometry as SHP
 from descartes.patch import PolygonPatch
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection, LineCollection
-from shapely.geometry import LineString, JOIN_STYLE
+from shapely.geometry import LineString, JOIN_STYLE, MultiLineString
 import math
 from isoxmlviz.LineStringUtil import extract_lines_within
 
@@ -256,12 +256,21 @@ def plot_all_lsg(ax, parent_map, ref, root, gpn_filter=None):
                     for offset in range(1, number_of_swaths_left + 1):
                         offset_line = base_line_string.parallel_offset(width * offset, 'left',
                                                                        join_style=JOIN_STYLE.mitre)
-                        lines.append(offset_line)
+
+                        if isinstance(offset_line,MultiLineString):
+                            for line in offset_line:
+                                lines.append(line)
+                        else:
+                            lines.append(offset_line)
                 if number_of_swaths_right > 0:
                     for offset in range(1, number_of_swaths_right + 1):
                         offset_line = base_line_string.parallel_offset(width * offset * -1, 'left',
                                                                        join_style=JOIN_STYLE.mitre)
-                        lines.append(offset_line)
+                        if isinstance(offset_line, MultiLineString):
+                            for line in offset_line:
+                                lines.append(line)
+                        else:
+                            lines.append(offset_line)
 
                 if len(lines) > 0:
                     trimmed_lines = [extract_lines_within(line, boundary_polygons) for line in lines]

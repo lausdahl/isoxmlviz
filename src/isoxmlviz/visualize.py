@@ -12,7 +12,7 @@ from shapely.geometry import LineString, JOIN_STYLE, MultiLineString
 import math
 from isoxmlviz.LineStringUtil import extract_lines_within
 
-ell_wgs84 = pymap3d.Ellipsoid('wgs84')
+ell_wgs84 = pymap3d.Ellipsoid.from_name('wgs84')
 
 default_propagation_num = 100
 

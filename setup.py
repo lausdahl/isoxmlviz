@@ -142,7 +142,7 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['matplotlib', 'pymap3d', 'shapely', 'descartes'],  # Optional
+    install_requires=['matplotlib', 'pymap3d', 'shapely<=1.8.5', 'descartes'],  # Optional
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"

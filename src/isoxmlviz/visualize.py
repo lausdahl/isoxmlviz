@@ -228,7 +228,6 @@ def plot_all_lsg(ax, parent_map, ref, root, gpn_filter=None):
 
                 base_line_string = LineString([(p[0], p[1]) for p in points])
 
-                width = int(line.attrib.get("C")) / 1000 if "C" in line.attrib.keys() else 1
                 number_of_swaths_left = 0
                 number_of_swaths_right = 0
 
@@ -252,25 +251,28 @@ def plot_all_lsg(ax, parent_map, ref, root, gpn_filter=None):
 
                 lines = []
 
-                if number_of_swaths_left > 0:
-                    for offset in range(1, number_of_swaths_left + 1):
-                        offset_line = base_line_string.parallel_offset(width * offset, 'left',
-                                                                       join_style=JOIN_STYLE.mitre)
+                if "C" in line.attrib.keys():
+                    width = int(line.attrib.get("C")) / 1000 if "C" in line.attrib.keys() else 1
 
-                        if isinstance(offset_line,MultiLineString):
-                            for line in offset_line:
-                                lines.append(line)
-                        else:
-                            lines.append(offset_line)
-                if number_of_swaths_right > 0:
-                    for offset in range(1, number_of_swaths_right + 1):
-                        offset_line = base_line_string.parallel_offset(width * offset * -1, 'left',
-                                                                       join_style=JOIN_STYLE.mitre)
-                        if isinstance(offset_line, MultiLineString):
-                            for line in offset_line:
-                                lines.append(line)
-                        else:
-                            lines.append(offset_line)
+                    if number_of_swaths_left > 0:
+                        for offset in range(1, number_of_swaths_left + 1):
+                            offset_line = base_line_string.parallel_offset(width * offset, 'left',
+                                                                           join_style=JOIN_STYLE.mitre)
+
+                            if isinstance(offset_line, MultiLineString):
+                                for line in offset_line:
+                                    lines.append(line)
+                            else:
+                                lines.append(offset_line)
+                    if number_of_swaths_right > 0:
+                        for offset in range(1, number_of_swaths_right + 1):
+                            offset_line = base_line_string.parallel_offset(width * offset * -1, 'left',
+                                                                           join_style=JOIN_STYLE.mitre)
+                            if isinstance(offset_line, MultiLineString):
+                                for line in offset_line:
+                                    lines.append(line)
+                            else:
+                                lines.append(offset_line)
 
                 if len(lines) > 0:
                     trimmed_lines = [extract_lines_within(line, boundary_polygons) for line in lines]
@@ -324,12 +326,20 @@ def plot_all_lsg(ax, parent_map, ref, root, gpn_filter=None):
             patch = LineCollection([base_line_string], linewidths=1.5,
                                    edgecolors="red", zorder=7)
             ax.add_collection(patch)
+        elif type == 3: #tramlines
+            designator = line.attrib.get("B")
+            base_line_string = LineString([(p[0], p[1]) for p in points])
+            print(base_line_string.length)
+            if designator:
+                ax.plot([p[0] for p in points], [p[1] for p in points], label=designator, color='brown')
+            else:
+                ax.plot([p[0] for p in points], [p[1] for p in points], color='brown')
         else:
             designator = line.attrib.get("B")
             if designator:
-                ax.plot([p[0] for p in points], [p[1] for p in points], label=designator)
+                ax.plot([p[0] for p in points], [p[1] for p in points], label=designator, color='gray')
             else:
-                ax.plot([p[0] for p in points], [p[1] for p in points])
+                ax.plot([p[0] for p in points], [p[1] for p in points], color='gray')
 
 
 if __name__ == '__main__':

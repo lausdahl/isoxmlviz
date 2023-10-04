@@ -11,6 +11,7 @@ from matplotlib.collections import PatchCollection, LineCollection
 from shapely.geometry import LineString, JOIN_STYLE, MultiLineString
 import math
 from isoxmlviz.LineStringUtil import extract_lines_within
+from webmap import WebMap
 
 ell_wgs84 = pymap3d.Ellipsoid.from_name('wgs84')
 
@@ -35,6 +36,8 @@ def main():
     options.add_argument("-p", "--pdf", dest="pdf", action="store_true", required=False, help='Write figure to pdf')
     options.add_argument("-hide", "--hide", dest="hide", action="store_true", required=False, help='Hide plot')
     options.add_argument("-svg", "--svg", dest="svg", action="store_true", required=False, help='Write figure to svg')
+    options.add_argument("-html", "--html", dest="html", action="store_true", required=False,
+                         help='Write figure to html')
     options.add_argument("-compact", "--compact-subplot", dest="compact", action="store_true", required=False,
                          help='Compact plot using a subplot for each part field')
     options.add_argument("-vf", "--version-filter", dest="version_prefix", required=False, help='Filter on version')
@@ -54,6 +57,8 @@ def main():
     if args.hide:
         hide_plot = True
 
+    web_map = WebMap(0, 0)
+
     if args.file:
         if args.file.endswith(".zip"):
             with zipfile.ZipFile(args.file, 'r') as zip:
@@ -66,17 +71,20 @@ def main():
                             tree = ET.parse(f)
                             show_task_file(args.version_prefix, fname.replace('/', '_'), tree, save_pdf,
                                            gpn_filter=args.gpn_filter, save_svg=save_svg, hide=hide_plot,
-                                           use_subplot=args.compact)
+                                           use_subplot=args.compact, web_map=web_map)
         else:
             if args.file.endswith("TASKDATA.xml"):
                 print("Invalid case in filename: '%s'" % args.file, file=sys.stderr)
             tree = ET.parse(args.file)
             show_task_file(args.version_prefix, Path(args.file).name, tree, save_pdf, gpn_filter=args.gpn_filter,
-                           save_svg=save_svg, hide=hide_plot, use_subplot=args.compact)
+                           save_svg=save_svg, hide=hide_plot, use_subplot=args.compact, web_map=web_map)
+
+        if args.pdf:
+            web_map.save("map.html")
 
 
 def show_task_file(version_prefix, name, tree, save_pdf: bool = False, save_svg: bool = False, hide=False,
-                   gpn_filter=None, use_subplot=False):
+                   gpn_filter=None, use_subplot=False, web_map=None):
     root = tree.getroot()
 
     if version_prefix is not None:
@@ -86,6 +94,12 @@ def show_task_file(version_prefix, name, tree, save_pdf: bool = False, save_svg:
     parent_map = {c: p for p in tree.iter() for c in p}
     ref_point_element = root.find(".//PNT").iter().__next__()
     ref = pnt_to_pair(ref_point_element)
+
+    if web_map is not None:
+        web_map.set_refernce(ref[0], ref[1])
+    else:
+        web_map = WebMap(ref[0], ref[1])
+
     part_fields = root.findall(".//PFD")
 
     if not use_subplot or len(part_fields) == 1:
@@ -105,8 +119,8 @@ def show_task_file(version_prefix, name, tree, save_pdf: bool = False, save_svg:
     for (ax, pfd) in part_fields_ax:
         if use_subplot:
             ax.title.set_text(pfd.attrib.get("C"))
-        plot_all_pln(ax, parent_map, ref, pfd)
-        plot_all_lsg(ax, parent_map, ref, pfd, gpn_filter=gpn_filter)
+        plot_all_pln(ax, parent_map, web_map, ref, pfd)
+        plot_all_lsg(ax, parent_map, web_map, ref, pfd, gpn_filter=gpn_filter)
 
         ax.axis("equal")
         ax.axis("off")
@@ -152,9 +166,10 @@ def get_polygon(ref, pln):
     return SHP.Polygon(exterior_points, [p.exterior.coords for p in interiors])
 
 
-def plot_all_pln(ax, parent_map, ref, root):
+def plot_all_pln(ax, parent_map, web_map, ref, root):
     for pln in root.findall(".//PLN"):
-        print("Processing line '%s'" % pln.attrib.get("B"))
+        designator = pln.attrib.get("B")
+        print("Processing line '%s'" % designator)
 
         polygon = get_polygon(ref, pln)
         if polygon is None:
@@ -164,25 +179,34 @@ def plot_all_pln(ax, parent_map, ref, root):
 
         if polygon_type == 1:  # boundary
             patch = PolygonPatch(polygon.buffer(0), alpha=1, zorder=2, facecolor="black", linewidth=2, fill=False)
+            web_map.add(polygon, tooltip=designator, style={'color': 'black', 'fillOpacity': '0'})
         elif polygon_type == 2:  # treatmentzone
             patch = PolygonPatch([polygon], linewidth=2, facecolor="gray", alpha=0.1,
                                  hatch="...", fill=False)
+            web_map.add(polygon, tooltip=designator, style={'color': 'gray', 'fillOpacity': '0.1'})
         elif polygon_type == 3:  # water
             patch = PolygonPatch([polygon], linewidth=2, facecolor="blue", alpha=0.1)
+            web_map.add(polygon, tooltip=designator, style={'color': 'blue', 'fillOpacity': '0.1'})
         elif polygon_type == 6:  # obstacle
             patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="red")
+            web_map.add(polygon, tooltip=designator, style={'color': 'red'})
         elif polygon_type == 8:  # other
             patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="gray")
+            web_map.add(polygon, tooltip=designator, style={'color': 'gray', 'fillOpacity': '0.5'})
         elif polygon_type == 9:  # mainland
             patch = PolygonPatch(polygon.buffer(0), alpha=0.2, zorder=2, facecolor="forestgreen", linewidth=0)
+            web_map.add(polygon, tooltip=designator, style={'color': 'forestgreen', 'fillOpacity': '0.2'})
         elif polygon_type == 10:  # headland
             patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="springgreen")
+            web_map.add(polygon, tooltip=designator,
+                        style={'color': 'springgreen', 'opacity': '0.3', 'fillOpacity': '0.1', 'z-index': '2'})
         else:
             patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="violet")
+            web_map.add(polygon, tooltip=designator, style={'color': 'violet', 'fillOpacity': '0.1'})
         ax.add_patch(patch)
 
 
-def plot_all_lsg(ax, parent_map, ref, root, gpn_filter=None):
+def plot_all_lsg(ax, parent_map, web_map, ref, root, gpn_filter=None):
     for line in root.findall(".//LSG"):
         print("Processing line '%s'" % line.attrib.get("B"))
         points_elements = line.findall("./PNT")
@@ -191,6 +215,7 @@ def plot_all_lsg(ax, parent_map, ref, root, gpn_filter=None):
                   point_data]
 
         type = int(line.attrib.get("A"))
+        designator = line.attrib.get("B")
 
         if type == 1 or type == 2:  # polygon exterior and interior
             pass
@@ -306,6 +331,8 @@ def plot_all_lsg(ax, parent_map, ref, root, gpn_filter=None):
                 patch = LineCollection(extract_lines_within(base_line_string, boundary_polygons), linewidths=1.5,
                                        edgecolors="goldenrod", zorder=7)
                 ax.add_collection(patch)
+                for l in extract_lines_within(base_line_string, boundary_polygons):
+                    web_map.add(l, tooltip=designator, style={'color': 'goldenrod'})
                 # patch = LineCollection([base_line_string], linewidths=1.5,
                 #                        edgecolors="black", zorder=6,linestyle="--")
                 # ax.add_collection(patch)
@@ -325,8 +352,9 @@ def plot_all_lsg(ax, parent_map, ref, root, gpn_filter=None):
             base_line_string = LineString([(p[0], p[1]) for p in points])
             patch = LineCollection([base_line_string], linewidths=1.5,
                                    edgecolors="red", zorder=7)
+            web_map.add(base_line_string, tooltip=designator, style={'color': 'red'})
             ax.add_collection(patch)
-        elif type == 3: #tramlines
+        elif type == 3:  # tramlines
             designator = line.attrib.get("B")
             base_line_string = LineString([(p[0], p[1]) for p in points])
             print(base_line_string.length)
@@ -334,12 +362,15 @@ def plot_all_lsg(ax, parent_map, ref, root, gpn_filter=None):
                 ax.plot([p[0] for p in points], [p[1] for p in points], label=designator, color='brown')
             else:
                 ax.plot([p[0] for p in points], [p[1] for p in points], color='brown')
+
+            web_map.add(base_line_string, tooltip=designator, style={'color': 'brown'})
         else:
-            designator = line.attrib.get("B")
+
             if designator:
                 ax.plot([p[0] for p in points], [p[1] for p in points], label=designator, color='gray')
             else:
                 ax.plot([p[0] for p in points], [p[1] for p in points], color='gray')
+            web_map.add(base_line_string, tooltip=designator, style={'lineColor': 'gray'})
 
 
 if __name__ == '__main__':

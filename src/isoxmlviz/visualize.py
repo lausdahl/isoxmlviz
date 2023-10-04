@@ -11,7 +11,7 @@ from matplotlib.collections import PatchCollection, LineCollection
 from shapely.geometry import LineString, JOIN_STYLE, MultiLineString
 import math
 from isoxmlviz.LineStringUtil import extract_lines_within
-from webmap import WebMap
+from isoxmlviz.webmap import WebMap
 
 ell_wgs84 = pymap3d.Ellipsoid.from_name('wgs84')
 

@@ -39,7 +39,8 @@ def extract_lines_within(base_line: LineString, polygons: list[Polygon]):
 
     for p in polygons:
         lines = [extract_line_within(line, p) for line in lines]
-    return [item for sublist in lines for item in sublist]
+        lines = [item for sublist in lines for item in sublist]
+    return lines
 
 
 '''

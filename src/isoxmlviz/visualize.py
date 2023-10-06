@@ -17,6 +17,25 @@ ell_wgs84 = pymap3d.Ellipsoid.from_name('wgs84')
 
 default_propagation_num = 100
 
+colour_map = {
+    0: 'black',
+    1: 'white',
+    2: 'green',
+    3: 'teal',
+    4: 'maroon',
+    5: 'purple',
+    6: 'olive',
+    7: 'silver',
+    8: 'grey',
+    9: 'blue',
+    10: 'lime',
+    11: 'cyan',
+    12: 'red',
+    13: 'magenta',
+    14: 'yellow',
+    15: 'navy',
+}
+
 
 def pnt_to_pair(element: ET):
     # C=lat
@@ -79,7 +98,7 @@ def main():
             show_task_file(args.version_prefix, Path(args.file).name, tree, save_pdf, gpn_filter=args.gpn_filter,
                            save_svg=save_svg, hide=hide_plot, use_subplot=args.compact, web_map=web_map)
 
-        if args.pdf:
+        if args.html:
             web_map.save("map.html")
 
 
@@ -206,6 +225,17 @@ def plot_all_pln(ax, parent_map, web_map, ref, root):
         ax.add_patch(patch)
 
 
+def get_color(attrib, key, default_colour):
+    if key in attrib:
+        c = int(attrib.get(key))
+        if c in colour_map:
+            return colour_map[c]
+    return default_colour
+
+
+type_groups = {}
+
+
 def plot_all_lsg(ax, parent_map, web_map, ref, root, gpn_filter=None):
     for line in root.findall(".//LSG"):
         print("Processing line '%s'" % line.attrib.get("B"))
@@ -223,6 +253,10 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, gpn_filter=None):
             # this is guidance so check if replication
 
             parent = parent_map[line]
+
+            if type not in type_groups:
+                type_groups[type] = web_map.create_group("GuidanceLines")
+            guidance_plot_group = type_groups[type]
 
             if parent.tag == "GPN":
 
@@ -272,7 +306,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, gpn_filter=None):
                 if parent.attrib.get("O"):
                     number_of_swaths_right = int(parent.attrib.get("O"))
 
-                boundary_polygons = [get_polygon(ref, p) for p in parent.findall('./PLN') if p is not None]
+                boundary_polygons = [get_polygon(ref, p) for p in parent_map[parent].findall('.//PLN') if p is not None]
 
                 lines = []
 
@@ -307,6 +341,12 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, gpn_filter=None):
 
                     ax.add_collection(patchc)
 
+                    g = web_map.create_group(str(designator) + '_replicated_GPNs')
+                    for trimmed_line in [item for sublist in trimmed_lines for item in sublist]:
+                        web_map.addPoly(trimmed_line, tooltip=designator,
+                                        style={'color': 'purple', 'z-index': '0', 'opacity': '0.3'},
+                                        group=g)
+
                     # if len(boundary_polygons) > 0:
                     #     for patch in [PolygonPatch(ggg, alpha=0.1, zorder=6, facecolor="pink", linewidth=2, fill=False,
                     #                                hatch="...")
@@ -331,8 +371,9 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, gpn_filter=None):
                 patch = LineCollection(extract_lines_within(base_line_string, boundary_polygons), linewidths=1.5,
                                        edgecolors="goldenrod", zorder=7)
                 ax.add_collection(patch)
+
                 for l in extract_lines_within(base_line_string, boundary_polygons):
-                    web_map.add(l, tooltip=designator, style={'color': 'goldenrod'})
+                    web_map.add(l, tooltip=designator, style={'color': 'goldenrod'}, group=guidance_plot_group)
                 # patch = LineCollection([base_line_string], linewidths=1.5,
                 #                        edgecolors="black", zorder=6,linestyle="--")
                 # ax.add_collection(patch)
@@ -340,10 +381,15 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, gpn_filter=None):
                 if len(points) < 2:
                     print("Too few points in line skipping: " + str(line))
                     continue
+                    # isoxml 3 guidance line
+
                 base_line_string = LineString([(p[0], p[1]) for p in points])
                 patch = LineCollection([base_line_string], linewidths=1.5,
                                        edgecolors="goldenrod", zorder=7)
                 ax.add_collection(patch)
+
+                web_map.add(base_line_string, tooltip=designator, style={'color': 'goldenrod'},
+                            group=guidance_plot_group)
         elif type == 9:  # obstacle
             # its a polygon
             # polygon = SHP.Polygon(points)
@@ -352,25 +398,35 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, gpn_filter=None):
             base_line_string = LineString([(p[0], p[1]) for p in points])
             patch = LineCollection([base_line_string], linewidths=1.5,
                                    edgecolors="red", zorder=7)
-            web_map.add(base_line_string, tooltip=designator, style={'color': 'red'})
+
+            if type not in type_groups:
+                type_groups[type] = web_map.create_group("Obstacles")
+            group_obstacles = type_groups[type]
+
+            web_map.add(base_line_string, tooltip=designator, style={'color': get_color(line.attrib, 'E', 'red')},
+                        group=group_obstacles)
             ax.add_collection(patch)
         elif type == 3:  # tramlines
+            color = get_color(line.attrib, 'E', 'brown')
             designator = line.attrib.get("B")
             base_line_string = LineString([(p[0], p[1]) for p in points])
             print(base_line_string.length)
             if designator:
-                ax.plot([p[0] for p in points], [p[1] for p in points], label=designator, color='brown')
+                ax.plot([p[0] for p in points], [p[1] for p in points], label=designator, color=color)
             else:
-                ax.plot([p[0] for p in points], [p[1] for p in points], color='brown')
+                ax.plot([p[0] for p in points], [p[1] for p in points], color=color)
 
-            web_map.add(base_line_string, tooltip=designator, style={'color': 'brown'})
+            if type not in type_groups:
+                type_groups[type] = web_map.create_group("Tramlines")
+            group_tramlines = type_groups[type]
+            web_map.add(base_line_string, tooltip=designator, style={'color': color}, group=group_tramlines)
         else:
-
+            color = get_color(line.attrib, 'E', 'gray')
             if designator:
-                ax.plot([p[0] for p in points], [p[1] for p in points], label=designator, color='gray')
+                ax.plot([p[0] for p in points], [p[1] for p in points], label=designator, color=color)
             else:
-                ax.plot([p[0] for p in points], [p[1] for p in points], color='gray')
-            web_map.add(base_line_string, tooltip=designator, style={'lineColor': 'gray'})
+                ax.plot([p[0] for p in points], [p[1] for p in points], color=color)
+            web_map.add([p[0] for p in points], [p[1] for p in points], tooltip=designator, style={'lineColor': color})
 
 
 if __name__ == '__main__':

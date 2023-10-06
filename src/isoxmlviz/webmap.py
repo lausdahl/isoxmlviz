@@ -34,7 +34,7 @@ class WebMap:
         self.ref_lat = ref_lat
         self.ref_lng = ref_lng
         self.m = folium.Map(location=[40.730610, -73.935242],
-                            zoom_start=12, control_scale=True, prefer_canvas=True,max_zoom=22)
+                            zoom_start=12, control_scale=True, prefer_canvas=True, max_zoom=22)
 
         folium.TileLayer('openstreetmap').add_to(self.m)
         tile = folium.TileLayer(
@@ -50,17 +50,30 @@ class WebMap:
         self.ref_lat = ref_lat
         self.ref_lng = ref_lng
 
-
-
-
-    def add(self, geom,tooltip=None,style={'fillColor': 'red', 'lineColor': '#228B22', 'opacity':'1'}):
-        mkt=lambda x: folium.features.Popup(tooltip) if tooltip else None
-
+    def add(self, geom, tooltip=None, style={'fillColor': 'red', 'lineColor': '#228B22', 'opacity': '1'},group=None):
+        mkt = lambda x: folium.features.Popup(tooltip) if tooltip else None
 
         ff = lambda c: [c[1], c[0], c[2]]
         folium.GeoJson(transform(geom, lambda p: ff(
             pymap3d.enu2geodetic(p[0], p[1], 0, self.ref_lat, self.ref_lng, 0, ell=ell_wgs84, deg=True))),
-                       style_function=lambda x: style,tooltip=mkt(tooltip),popup=mkt(tooltip)).add_to(self.m)
+                       style_function=lambda x: style, tooltip=mkt(tooltip), popup=mkt(tooltip)).add_to(self.m if not group else group)
+
+    def addPoly(self, geom, tooltip=None, style={'color': 'red', 'lineColor': '#228B22', 'opacity': '1'},group=None):
+        mkt = lambda x: folium.features.Popup(tooltip) if tooltip else None
+        ff = lambda c: [c[0], c[1]]
+        g = transform(geom, lambda p: ff(
+            pymap3d.enu2geodetic(p[0], p[1], 0, self.ref_lat, self.ref_lng, 0, ell=ell_wgs84, deg=True)))
+
+        ff = lambda c: [c[1], c[0], c[2]]
+        # folium.GeoJson(transform(geom, lambda p: ff(
+        #     pymap3d.enu2geodetic(p[0], p[1], 0, self.ref_lat, self.ref_lng, 0, ell=ell_wgs84, deg=True))),
+        #                style_function=lambda x: style,tooltip=mkt(tooltip),popup=mkt(tooltip)).add_to(self.m)
+        folium.PolyLine(locations=g.coords, tooltip=mkt(tooltip), color=style['color'],
+                        opacity=style['opacity'] if 'opacity' in style else 1).add_to(self.m if not group else group)
+
+
+    def create_group(self, name):
+        return folium.FeatureGroup(name=name).add_to(self.m)
 
     def save(self, path):
         folium.LayerControl().add_to(self.m)

@@ -49,6 +49,16 @@ def totuple(a):
         return a
 
 
+class WebGroups:
+
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.line_type_groups= {}
+        self.polygon_type_groups = {}
+        self.field_name_group = None
+
+
 def main():
     options = argparse.ArgumentParser(prog="isoxmlviz")
     options.add_argument("-file", dest="file", type=str, required=True, help='Path to a isoxml task file XML or ZIP')
@@ -80,6 +90,7 @@ def main():
         hide_plot = True
 
     web_map = WebMap(0, 0)
+    web_groups = WebGroups()
 
     if args.file:
         if args.file.endswith(".zip"):
@@ -94,21 +105,21 @@ def main():
                             show_task_file(args.version_prefix, fname.replace('/', '_'), tree, save_pdf,
                                            gpn_filter=args.gpn_filter, save_svg=save_svg, hide=hide_plot,
                                            use_subplot=args.compact, web_map=web_map,
-                                           output_base_name=args.output_base_name)
+                                           output_base_name=args.output_base_name, groups=web_groups)
         else:
             if args.file.endswith("TASKDATA.xml"):
                 print("Invalid case in filename: '%s'" % args.file, file=sys.stderr)
             tree = ET.parse(args.file)
             show_task_file(args.version_prefix, Path(args.file).name, tree, save_pdf, gpn_filter=args.gpn_filter,
                            save_svg=save_svg, hide=hide_plot, use_subplot=args.compact, web_map=web_map,
-                           output_base_name=args.output_base_name)
+                           output_base_name=args.output_base_name, groups=web_groups)
 
         if args.html:
             web_map.save("map.html")
 
 
 def show_task_file(version_prefix, name, tree, save_pdf: bool = False, save_svg: bool = False, hide=False,
-                   gpn_filter=None, use_subplot=False, web_map=None, output_base_name=None):
+                   gpn_filter=None, use_subplot=False, web_map=None, output_base_name=None, groups: WebGroups = None):
     root = tree.getroot()
 
     if version_prefix is not None:
@@ -124,8 +135,8 @@ def show_task_file(version_prefix, name, tree, save_pdf: bool = False, save_svg:
     else:
         web_map = WebMap(ref[0], ref[1])
 
-    line_type_groups = {}
-    polygon_type_groups = {}
+    if not groups:
+        groups = WebGroups()
 
     part_fields = root.findall(".//PFD")
 
@@ -143,13 +154,15 @@ def show_task_file(version_prefix, name, tree, save_pdf: bool = False, save_svg:
         fig, axes = plt.subplots(nrows=round(len(part_fields) / cols), ncols=cols)
         part_fields_ax = zip(axes.flat, part_fields)
 
-    field_marker_group = web_map.create_group("Field names")
+    if not groups.field_name_group:
+        groups.field_name_group = web_map.create_group("Field names")
+
     for (ax, pfd) in part_fields_ax:
         if use_subplot:
             ax.title.set_text(pfd.attrib.get("C"))
-        plot_all_pln(ax, parent_map, web_map, ref, pfd, polygon_type_groups)
-        plot_all_lsg(ax, parent_map, web_map, ref, pfd, gpn_filter=gpn_filter, line_type_groups=line_type_groups)
-        plot_center_name(name, pfd, ref, web_map, group=field_marker_group)
+        plot_all_pln(ax, parent_map, web_map, ref, pfd, groups.polygon_type_groups)
+        plot_all_lsg(ax, parent_map, web_map, ref, pfd, gpn_filter=gpn_filter, line_type_groups=groups.line_type_groups)
+        plot_center_name(name, pfd, ref, web_map, group=groups.field_name_group)
 
         ax.axis("equal")
         ax.axis("off")
@@ -234,30 +247,31 @@ def plot_all_pln(ax, parent_map, web_map, ref, root, polygon_type_groups):
 
         if polygon_type == 1:  # boundary
             patch = PolygonPatch(polygon.buffer(0), alpha=1, zorder=2, facecolor="black", linewidth=2, fill=False)
-            web_map.add(polygon, tooltip=designator, style={'color': 'black', 'fillOpacity': '0'},group=group)
+            web_map.add(polygon, tooltip=designator, style={'color': 'black', 'fillOpacity': '0'}, group=group)
         elif polygon_type == 2:  # treatmentzone
             patch = PolygonPatch([polygon], linewidth=2, facecolor="gray", alpha=0.1,
                                  hatch="...", fill=False)
-            web_map.add(polygon, tooltip=designator, style={'color': 'gray', 'fillOpacity': '0.1'},group=group)
+            web_map.add(polygon, tooltip=designator, style={'color': 'gray', 'fillOpacity': '0.1'}, group=group)
         elif polygon_type == 3:  # water
             patch = PolygonPatch([polygon], linewidth=2, facecolor="blue", alpha=0.1)
-            web_map.add(polygon, tooltip=designator, style={'color': 'blue', 'fillOpacity': '0.1'},group=group)
+            web_map.add(polygon, tooltip=designator, style={'color': 'blue', 'fillOpacity': '0.1'}, group=group)
         elif polygon_type == 6:  # obstacle
             patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="red")
-            web_map.add(polygon, tooltip=designator, style={'color': 'red'},group=group)
+            web_map.add(polygon, tooltip=designator, style={'color': 'red'}, group=group)
         elif polygon_type == 8:  # other
             patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="gray")
-            web_map.add(polygon, tooltip=designator, style={'color': 'gray', 'fillOpacity': '0.5'},group=group)
+            web_map.add(polygon, tooltip=designator, style={'color': 'gray', 'fillOpacity': '0.5'}, group=group)
         elif polygon_type == 9:  # mainland
             patch = PolygonPatch(polygon.buffer(0), alpha=0.2, zorder=2, facecolor="forestgreen", linewidth=0)
-            web_map.add(polygon, tooltip=designator, style={'color': 'forestgreen', 'fillOpacity': '0.2'},group=group)
+            web_map.add(polygon, tooltip=designator, style={'color': 'forestgreen', 'fillOpacity': '0.2'}, group=group)
         elif polygon_type == 10:  # headland
             patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="springgreen")
             web_map.add(polygon, tooltip=designator,
-                        style={'color': 'springgreen', 'opacity': '0.3', 'fillOpacity': '0.1', 'z-index': '2'},group=group)
+                        style={'color': 'springgreen', 'opacity': '0.3', 'fillOpacity': '0.1', 'z-index': '2'},
+                        group=group)
         else:
             patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="violet")
-            web_map.add(polygon, tooltip=designator, style={'color': 'violet', 'fillOpacity': '0.1'},group=group)
+            web_map.add(polygon, tooltip=designator, style={'color': 'violet', 'fillOpacity': '0.1'}, group=group)
         ax.add_patch(patch)
 
 
@@ -374,7 +388,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
                     ax.add_collection(patchc)
 
-                    g = web_map.create_group(str(designator) + '_replicated_GPNs')
+                    g = web_map.create_group('GuidanceLines-'+str(designator) + '_replicated_GPNs')
                     for trimmed_line in [item for sublist in trimmed_lines for item in sublist]:
                         web_map.addPoly(trimmed_line, tooltip=designator,
                                         style={'color': 'purple', 'z-index': '0', 'opacity': '0.3'},

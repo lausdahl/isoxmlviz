@@ -8,7 +8,7 @@ import shapely.geometry as SHP
 from descartes.patch import PolygonPatch
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection, LineCollection
-from shapely.geometry import LineString, JOIN_STYLE, MultiLineString
+from shapely.geometry import LineString, JOIN_STYLE, MultiLineString, MultiPoint
 import math
 from isoxmlviz.LineStringUtil import extract_lines_within
 from isoxmlviz.webmap import WebMap
@@ -135,11 +135,13 @@ def show_task_file(version_prefix, name, tree, save_pdf: bool = False, save_svg:
         fig, axes = plt.subplots(nrows=round(len(part_fields) / cols), ncols=cols)
         part_fields_ax = zip(axes.flat, part_fields)
 
+    field_marker_group =web_map.create_group("Field names")
     for (ax, pfd) in part_fields_ax:
         if use_subplot:
             ax.title.set_text(pfd.attrib.get("C"))
         plot_all_pln(ax, parent_map, web_map, ref, pfd)
         plot_all_lsg(ax, parent_map, web_map, ref, pfd, gpn_filter=gpn_filter)
+        plot_center_name(name,pfd,ref,web_map,group=field_marker_group)
 
         ax.axis("equal")
         ax.axis("off")
@@ -160,6 +162,15 @@ def show_task_file(version_prefix, name, tree, save_pdf: bool = False, save_svg:
     plt.cla()
     plt.clf()
 
+def plot_center_name(name, pfd,ref,web_map,group=None):
+    points_elements = pfd.findall('.//PNT')
+    if len(points_elements) == 0:
+        return
+    point_data = [pnt_to_pair(pelement) for pelement in points_elements]
+    points = [pymap3d.geodetic2enu(p[0], p[1], 0, ref[0], ref[1], 0, ell=ell_wgs84, deg=True) for p in
+              point_data]
+    field_name= str( pfd.attrib.get("C"))
+    web_map.add_marker(name+' '+field_name,MultiPoint( points).centroid,group=group)
 
 def get_line_points(ref, line: ET.ElementTree):
     points_elements = line.findall('./PNT')
@@ -187,7 +198,7 @@ def get_polygon(ref, pln):
 
 def plot_all_pln(ax, parent_map, web_map, ref, root):
     for pln in root.findall(".//PLN"):
-        designator = pln.attrib.get("B")
+        designator = pln.attrib.get("C")
         print("Processing line '%s'" % designator)
 
         polygon = get_polygon(ref, pln)

@@ -3,6 +3,8 @@ import pymap3d
 
 ell_wgs84 = pymap3d.Ellipsoid.from_name('wgs84')
 
+def flatten(matrix):
+    return [item for row in matrix for item in row]
 
 def transform(shape, func):
     ''' Apply a function to every coordinate in a geometry.
@@ -14,8 +16,11 @@ def transform(shape, func):
         parts = [transform(geom, func) for geom in shape.geoms]
         return construct(parts)
 
-    if shape.type in ('Point', 'LineString'):
+    if shape.type in ( 'LineString'):
         return construct(map(func, shape.coords))
+    if shape.type in ('Point'):
+        return construct(flatten(map(func, shape.coords)))
+
 
     if shape.type == 'Polygon':
         exterior = map(func, shape.exterior.coords)
@@ -71,6 +76,12 @@ class WebMap:
         folium.PolyLine(locations=g.coords, tooltip=mkt(tooltip), color=style['color'],
                         opacity=style['opacity'] if 'opacity' in style else 1).add_to(self.m if not group else group)
 
+    def add_marker(self,name,geom,group=None):
+        ff = lambda c: [c[0], c[1],c[2]]
+        g = transform(geom, lambda p: ff(
+            pymap3d.enu2geodetic(p[0], p[1], 0, self.ref_lat, self.ref_lng, 0, ell=ell_wgs84, deg=True)))
+
+        folium.Marker(location=[c[:-1] for c in g.coords][0],popup=folium.features.Popup(name)).add_to(self.m if not group else group)
 
     def create_group(self, name):
         return folium.FeatureGroup(name=name).add_to(self.m)

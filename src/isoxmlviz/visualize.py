@@ -443,16 +443,36 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
             # patch = PatchCollection([polygon], linewidths=1, edgecolors="none", facecolor="red", alpha=0.3)
             # ax.add_patch(patch)
             base_line_string = LineString([(p[0], p[1]) for p in points])
-            patch = LineCollection([base_line_string], linewidths=1.5,
-                                   edgecolors="red", zorder=7)
 
             if type not in line_type_groups:
                 line_type_groups[type] = web_map.create_group("Obstacles")
             group_obstacles = line_type_groups[type]
 
-            web_map.add(base_line_string, tooltip=designator, style={'color': get_color(line.attrib, 'E', 'red')},
-                        group=group_obstacles)
-            ax.add_collection(patch)
+            if "C" in line.attrib.keys():
+                # it is a polygon as a width is given
+                width = int(line.attrib.get("C")) / 1000 if "C" in line.attrib.keys() else 1
+
+                poly =base_line_string.parallel_offset(width /2.0, 'left',
+                                                 join_style=JOIN_STYLE.mitre).union(base_line_string.parallel_offset(width /2.0, 'right',
+                                                 join_style=JOIN_STYLE.mitre)).convex_hull
+
+                web_map.add(poly, tooltip=designator, style={'color': get_color(line.attrib, 'E', 'red')},
+                            group=group_obstacles)
+
+                patch = PolygonPatch(poly, alpha=0.1, zorder=2, facecolor="red")
+                ax.add_patch(patch)
+
+
+            else:
+                #it is a line
+                patch = LineCollection([base_line_string], linewidths=1.5,
+                                       edgecolors="red", zorder=7)
+
+
+
+                web_map.add(base_line_string, tooltip=designator, style={'color': get_color(line.attrib, 'E', 'red')},
+                            group=group_obstacles)
+                ax.add_collection(patch)
         elif type == 3:  # tramlines
             color = get_color(line.attrib, 'E', 'brown')
             designator = line.attrib.get("B")

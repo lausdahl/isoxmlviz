@@ -17,6 +17,17 @@ ell_wgs84 = pymap3d.Ellipsoid.from_name('wgs84')
 
 default_propagation_num = 100
 
+def generate_web_safe_colors():
+    color_levels = [0, 51, 102, 153, 204, 255]
+    web_safe_colors = [
+        "#{:02X}{:02X}{:02X}{:02X}".format( r, g, b,a)
+        for a in [255]#color_levels
+        for r in color_levels
+        for g in color_levels
+        for b in color_levels
+    ]
+    return web_safe_colors
+
 colour_map = {
     0: 'black',
     1: 'white',
@@ -35,6 +46,9 @@ colour_map = {
     14: 'yellow',
     15: 'navy',
 }
+
+for idx,c in enumerate(generate_web_safe_colors()):
+    colour_map[idx+16] = c
 
 
 def pnt_to_pair(element: ET):
@@ -249,9 +263,14 @@ def plot_all_pln(ax, parent_map, web_map, ref, root, polygon_type_groups):
             patch = PolygonPatch(polygon.buffer(0), alpha=1, zorder=2, facecolor="black", linewidth=2, fill=False)
             web_map.add(polygon, tooltip=designator, style={'color': 'black', 'fillOpacity': '0'}, group=group)
         elif polygon_type == 2:  # treatmentzone
-            patch = PolygonPatch([polygon], linewidth=2, facecolor="gray", alpha=0.1,
+            patch = PolygonPatch(polygon.buffer(0), linewidth=2, facecolor="gray", alpha=0.1,
                                  hatch="...", fill=False)
-            web_map.add(polygon, tooltip=designator, style={'color': 'gray', 'fillOpacity': '0.1'}, group=group)
+            if 'B' in parent_map[pln].attrib:
+                designator = parent_map[pln].attrib['B']
+
+            color = get_color(parent_map[pln].attrib, 'C', 'gray')
+
+            web_map.add(polygon, tooltip=designator, style={'color': color, 'fillOpacity': '0.1'}, group=group)
         elif polygon_type == 3:  # water
             patch = PolygonPatch([polygon], linewidth=2, facecolor="blue", alpha=0.1)
             web_map.add(polygon, tooltip=designator, style={'color': 'blue', 'fillOpacity': '0.1'}, group=group)

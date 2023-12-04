@@ -248,7 +248,7 @@ def plot_all_pln(ax, parent_map, web_map, ref, root, polygon_type_groups):
         polygon_type = int(pln.attrib.get("A"))
         group = None
 
-        group_names = {1: 'Boundary', 2: 'Treatment zone', 3: 'Water', 6: 'Obstacles', 8: 'Other', 10: 'Headland'}
+        group_names = {1: 'Boundary', 2: 'Treatment zone', 3: 'Water',4:'PrimaryArea',5:'Road', 6: 'Obstacles', 8: 'Other', 10: 'Headland',11:'BufferZone',12:'Windbreak'}
 
         if polygon_type in [1, 2, 3, 6, 8, 9, 10]:
             if polygon_type not in polygon_type_groups:

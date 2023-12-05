@@ -5,13 +5,35 @@ from pathlib import Path
 import sys
 import pymap3d
 import shapely.geometry as SHP
-from descartes.patch import PolygonPatch
+
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection, LineCollection
 from shapely.geometry import LineString, JOIN_STYLE, MultiLineString, MultiPoint
 import math
 from isoxmlviz.LineStringUtil import extract_lines_within
 from isoxmlviz.webmap import WebMap
+
+def PolygonPatch(polygon, **kwargs):
+    """Constructs a matplotlib patch from a geometric object
+
+    The `polygon` may be a Shapely or GeoJSON-like object with or without holes.
+    The `kwargs` are those supported by the matplotlib.patches.Polygon class
+    constructor. Returns an instance of matplotlib.patches.PathPatch.
+
+    Example (using Shapely Point and a matplotlib axes):
+
+      >>> b = Point(0, 0).buffer(1.0)
+      >>> patch = PolygonPatch(b, fc='blue', ec='blue', alpha=0.5)
+      >>> axis.add_patch(patch)
+
+    """
+
+    # from descartes but no longer maintained so inspired by https://github.com/geopandas/geopandas/issues/1039
+    from matplotlib.path import Path
+    from matplotlib.patches import Polygon
+    import numpy as np
+    return Polygon(Path.make_compound_path(Path(np.asarray(polygon.exterior.coords)[:, :2]),
+                                           *[Path(np.asarray(ring.coords)[:, :2]) for ring in polygon.interiors]).vertices, **kwargs)
 
 ell_wgs84 = pymap3d.Ellipsoid.from_name('wgs84')
 
@@ -512,7 +534,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                 ax.plot([p[0] for p in points], [p[1] for p in points], label=designator, color=color)
             else:
                 ax.plot([p[0] for p in points], [p[1] for p in points], color=color)
-            web_map.add([p[0] for p in points], [p[1] for p in points], tooltip=designator, style={'lineColor': color})
+            web_map.add(LineString([(p[0], p[1]) for p in points]), tooltip=designator, style={'color': color})
 
 
 if __name__ == '__main__':

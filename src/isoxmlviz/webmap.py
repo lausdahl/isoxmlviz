@@ -12,25 +12,25 @@ def transform(shape, func):
     from shapely.geometry import Point, LineString, Polygon, GeometryCollection
     construct = shape.__class__
 
-    if shape.type.startswith('Multi'):
+    if shape.geom_type.startswith('Multi'):
         parts = [transform(geom, func) for geom in shape.geoms]
         return construct(parts)
 
-    if shape.type in ( 'LineString'):
+    if shape.geom_type in ( 'LineString'):
         return construct(map(func, shape.coords))
-    if shape.type in ('Point'):
+    if shape.geom_type in ('Point'):
         return construct(flatten(map(func, shape.coords)))
 
 
-    if shape.type == 'Polygon':
+    if shape.geom_type == 'Polygon':
         exterior = map(func, shape.exterior.coords)
         rings = [list(map(func, ring.coords)) for ring in shape.interiors]
         return construct(exterior, rings)
 
-    if shape.type == 'GeometryCollection':
+    if shape.geom_type == 'GeometryCollection':
         return construct()
 
-    raise ValueError('Unknown geometry type, "%s"' % shape.type)
+    raise ValueError('Unknown geometry type, "%s"' % shape.geom_type)
 
 
 class WebMap:

@@ -4,6 +4,7 @@ import zipfile
 from pathlib import Path
 import sys
 import pymap3d
+import shapely.geometry
 import shapely.geometry as SHP
 
 from matplotlib import pyplot as plt
@@ -12,6 +13,7 @@ from shapely.geometry import LineString, JOIN_STYLE, MultiLineString, MultiPoint
 import math
 from isoxmlviz.LineStringUtil import extract_lines_within
 from isoxmlviz.webmap import WebMap
+
 
 def PolygonPatch(polygon, **kwargs):
     """Constructs a matplotlib patch from a geometric object
@@ -27,17 +29,21 @@ def PolygonPatch(polygon, **kwargs):
       >>> axis.add_patch(patch)
 
     """
-
+    if type(polygon) is shapely.geometry.MultiPolygon:
+        return PatchCollection([PolygonPatch(p, **kwargs) for p in polygon])
     # from descartes but no longer maintained so inspired by https://github.com/geopandas/geopandas/issues/1039
     from matplotlib.path import Path
     from matplotlib.patches import Polygon
     import numpy as np
     return Polygon(Path.make_compound_path(Path(np.asarray(polygon.exterior.coords)[:, :2]),
-                                           *[Path(np.asarray(ring.coords)[:, :2]) for ring in polygon.interiors]).vertices, **kwargs)
+                                           *[Path(np.asarray(ring.coords)[:, :2]) for ring in
+                                             polygon.interiors]).vertices, **kwargs)
+
 
 ell_wgs84 = pymap3d.Ellipsoid.from_name('wgs84')
 
 default_propagation_num = 100
+
 
 def generate_web_safe_colors():
     color_levels = [0, 51, 102, 153, 204, 255]
@@ -313,7 +319,11 @@ def plot_all_pln(ax, parent_map, web_map, ref, root, polygon_type_groups):
         else:
             patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="violet")
             web_map.add(polygon, tooltip=designator, style={'color': 'violet', 'fillOpacity': '0.1'}, group=group)
-        ax.add_patch(patch)
+
+        if type(patch) is PatchCollection:
+            ax.add_collection(patch)
+        else:
+            ax.add_patch(patch)
 
 
 def get_color(attrib, key, default_colour):

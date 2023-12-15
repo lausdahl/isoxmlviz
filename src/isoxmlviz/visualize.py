@@ -339,10 +339,15 @@ def get_color(attrib, key, default_colour):
 def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filter=None):
     for line in root.findall(".//LSG"):
         print("Processing line '%s'" % line.attrib.get("B"))
-        points_elements = line.findall("./PNT")
-        point_data = [pnt_to_pair(pelement) for pelement in points_elements]
-        points = [pymap3d.geodetic2enu(p[0], p[1], 0, ref[0], ref[1], 0, ell=ell_wgs84, deg=True) for p in
-                  point_data]
+
+        def get_pnts(pnt_type_filter=None)->[shapely.geometry.Point]:
+            points_elements = line.findall("./PNT") if not pnt_type_filter else line.findall("./PNT[@A='%s']"%pnt_type_filter)
+            point_data = [pnt_to_pair(pelement) for pelement in points_elements]
+            return [pymap3d.geodetic2enu(p[0], p[1], 0, ref[0], ref[1], 0, ell=ell_wgs84, deg=True) for p in
+                      point_data]
+
+
+        points =get_pnts()
 
         type = int(line.attrib.get("A"))
         designator = line.attrib.get("B")
@@ -369,9 +374,81 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
                 gpn_type = int(parent.attrib.get("C"))
 
-                if not gpn_type in [1, 2, 3, 5]:
+                if not gpn_type in [1, 2, 3,4, 5]:
                     print("GPN %d not implemented" % gpn_type)
                     continue
+
+                boundary_polygons = [get_polygon(ref, p) for p in parent_map[parent].findall('./PLN') if p is not None]
+                boundary_polygons += [get_polygon(ref, p) for p in parent.findall('.//PLN') if p is not None]
+                designator = parent.attrib.get('B')
+
+                if gpn_type == 4:
+                    center_pnts = get_pnts('8')
+                    a_pnts = get_pnts('6')
+                    b_pnts = get_pnts('7')
+
+                    if not 'H' in parent.attrib.keys() or len(center_pnts)==0:
+                        print('Invalid pivot')
+                        continue
+
+                    pivot_cutout = None
+                    if len(a_pnts) >0 and len(b_pnts)>0:
+                        #we have a cut out to lets add it as a boundary limitation
+                        from shapely.geometry import Polygon
+                        pivot_cutout = Polygon(b_pnts+center_pnts+a_pnts+b_pnts)
+
+                    radius = int(parent.attrib.get("H"))/1000.0
+
+                    center = shapely.geometry.Point(center_pnts[0])
+
+                    # outer perimiter of pivot
+                    poly=center.buffer(radius)
+
+                    base_line_string = LineString(poly.exterior)
+
+                    patch = LineCollection([base_line_string], linewidths=1.5,
+                                           edgecolors="black", zorder=7)
+                    ax.add_collection(patch)
+
+                    web_map.add(base_line_string, tooltip=designator+'-pivot-boundary', style={'color': 'black'}, group=guidance_plot_group)
+
+                    if "C" in line.attrib.keys():
+                        width = int(line.attrib.get("C")) / 1000 if "C" in line.attrib.keys() else 1
+
+                        lines=[]
+
+                        for offset in range(1, int((radius/width)+1)):
+                            offset_line =LineString( center.buffer(offset*width-(width/2.0)).exterior)
+                            if isinstance(offset_line, MultiLineString):
+                                for line in offset_line:
+                                    lines.append(line)
+                            else:
+                                lines.append(offset_line)
+
+                        if len(lines) > 0:
+                            guidance_lines = [extract_lines_within(line, boundary_polygons) for line in lines]
+                            # if pivot_cutout:
+                            #     guidance_lines = [extract_lines_within(line,[ pivot_cutout],invert=True) for line in lines]
+
+                            patchc = LineCollection([item for sublist in guidance_lines for item in sublist], linewidths=1,
+                                                    edgecolors="purple", zorder=5, alpha=0.5)
+
+                            ax.add_collection(patchc)
+
+                            g = web_map.create_group('GuidanceLines-' + str(designator) + '_replicated_GPNs')
+                            for trimmed_line in [item for sublist in guidance_lines for item in sublist]:
+                                web_map.addPoly(trimmed_line, tooltip=designator,
+                                                style={'color': 'purple', 'z-index': '0', 'opacity': '0.3'},
+                                                group=g)
+
+                    """GuidancePatternOptions D
+                    GuidancePatternRadius H
+                    
+                    pnt 8 for center
+                    6 for A and 7 fot B"""
+
+                    continue
+
 
                 if gpn_type == 2:
                     # calculate second point
@@ -451,7 +528,6 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                 if parent.attrib.get("O"):
                     number_of_swaths_right = int(parent.attrib.get("O"))
 
-                boundary_polygons = [get_polygon(ref, p) for p in parent_map[parent].findall('.//PLN') if p is not None]
 
                 lines = []
 
@@ -478,42 +554,21 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                             else:
                                 lines.append(offset_line)
 
-                designator = parent.attrib.get('B')
-
                 if len(lines) > 0:
-                    trimmed_lines = [extract_lines_within(line, boundary_polygons) for line in lines]
+                    guidance_lines = [extract_lines_within(line, boundary_polygons) for line in lines]
 
-                    patchc = LineCollection([item for sublist in trimmed_lines for item in sublist], linewidths=1,
+                    patchc = LineCollection([item for sublist in guidance_lines for item in sublist], linewidths=1,
                                             edgecolors="purple", zorder=5, alpha=0.5)
 
                     ax.add_collection(patchc)
 
                     g = web_map.create_group('GuidanceLines-' + str(designator) + '_replicated_GPNs')
-                    for trimmed_line in [item for sublist in trimmed_lines for item in sublist]:
+                    for trimmed_line in [item for sublist in guidance_lines for item in sublist]:
                         web_map.addPoly(trimmed_line, tooltip=designator,
                                         style={'color': 'purple', 'z-index': '0', 'opacity': '0.3'},
                                         group=g)
 
-                    # if len(boundary_polygons) > 0:
-                    #     for patch in [PolygonPatch(ggg, alpha=0.1, zorder=6, facecolor="pink", linewidth=2, fill=False,
-                    #                                hatch="...")
-                    #                   for ggg in
-                    #                   boundary_polygons]:
-                    #         ax.add_patch(patch)
-                #
-                # designator = line.attrib.get("B")
-                # if designator:
-                #     ax.plot([p[0] for p in points], [p[1] for p in points], color="goldenrod", label=designator)
-                # else:
-                #     ax.plot([p[0] for p in points], [p[1] for p in points], color="goldenrod")
-
-                # if len(boundary_polygons) > 0:
-                #     for patch in [PolygonPatch(ggg, alpha=0.1, zorder=6, facecolor="pink", linewidth=2, fill=False,
-                #                                hatch="...")
-                #                   for ggg in
-                #                   boundary_polygons]:
-                #         ax.add_patch(patch)
-
+                # plot the baseline
                 # https://stackoverflow.com/questions/19877666/add-legends-to-linecollection-plot
                 patch = LineCollection(extract_lines_within(base_line_string, boundary_polygons), linewidths=1.5,
                                        edgecolors="goldenrod", zorder=7)
@@ -521,9 +576,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
                 for l in extract_lines_within(base_line_string, boundary_polygons):
                     web_map.add(l, tooltip=designator, style={'color': 'goldenrod'}, group=guidance_plot_group)
-                # patch = LineCollection([base_line_string], linewidths=1.5,
-                #                        edgecolors="black", zorder=6,linestyle="--")
-                # ax.add_collection(patch)
+
             else:
                 if len(points) < 2:
                     print("Too few points in line skipping: " + str(line))

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ISO11783_TaskData VersionMajor="4" VersionMinor="3" ManagementSoftwareManufacturer="-"
+                   ManagementSoftwareVersion="1.0.0" TaskControllerManufacturer="-" TaskControllerVersion="1.0.0"
+                   DataTransferOrigin="1">
+    <PFD A="PFD1" C="My field :-)" D="0">
+
+        <PLN A="1" B="Polygon 1">
+            <LSG A="1" B="Unknown">
+                <PNT A="1" C="56.368045" D="9.955447"/>
+                <PNT A="1" C="56.367945" D="9.956820"/>
+                <PNT A="1" C="56.367381" D="9.956653"/>
+                <PNT A="1" C="56.367506" D="9.955365"/>
+                <PNT A="1" C="56.368045" D="9.955447"/>
+
+            </LSG>
+        </PLN>
+
+        <GPG>
+
+
+            <GPN A="GPN1" B="AB" C="1" E="3" F="1">
+                <LSG A="5">
+                    <PNT A="6" C=" 56.367831" D="  9.954340"/>
+                    <PNT A="7" C=" 56.367561" D="  9.958482"/>
+                </LSG>
+                <PLN A="1" B="Polygon 1">
+                    <LSG A="1" B="Unknown">
+                        <PNT A="1" C="56.368045" D="9.955447"/>
+                        <PNT A="1" C="56.367945" D="9.956820"/>
+                        <PNT A="1" C="56.367381" D="9.956653"/>
+                        <PNT A="1" C="56.367506" D="9.955365"/>
+                        <PNT A="1" C="56.368045" D="9.955447"/>
+
+                    </LSG>
+                </PLN>
+            </GPN>
+
+            <PLN A="1" B="Polygon 1">
+                <LSG A="1" B="Unknown">
+                    <PNT A="1" C=" 56.368152" D="  9.955948"/>
+                    <PNT A="1" C=" 56.368069" D="  9.956523"/>
+                    <PNT A="1" C=" 56.367392" D="  9.956320"/>
+                    <PNT A="1" C=" 56.367421" D="  9.955802"/>
+                    <PNT A="1" C=" 56.368152" D="  9.955948"/>
+
+                </LSG>
+            </PLN>
+        </GPG>
+
+    </PFD>
+</ISO11783_TaskData>

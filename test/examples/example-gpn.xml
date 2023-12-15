@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ISO11783_TaskData VersionMajor="4" VersionMinor="3" ManagementSoftwareManufacturer="-"
+                   ManagementSoftwareVersion="1.0.0" TaskControllerManufacturer="-" TaskControllerVersion="1.0.0"
+                   DataTransferOrigin="1">
+    <PFD A="PFD1" C="My field :-)" D="0">
+
+
+        <GPG>
+
+
+            <GPN A="GPN1" B="AB" C="1" E="3" F="3">
+                <LSG A="5">
+                    <PNT A="6" C="58.8754321" D="8.945632"/>
+                    <PNT A="7" C="58.8789999" D="8.99889099"/>
+                </LSG>
+            </GPN>
+
+
+<!--            <GPN A="GPN1" B="Adaptive Curve" C="3">-->
+<!--                <LSG A="5">-->
+<!--                    <PNT A="6" C="58.8754321" D="8.945632"/>-->
+<!--                    <PNT A="9" C="58.8757777" D="8.94777"/>-->
+<!--                    <PNT A="7" C="58.8789999" D="8.99889099"/>-->
+<!--                </LSG>-->
+<!--            </GPN>-->
+
+        </GPG>
+
+    </PFD>
+</ISO11783_TaskData>

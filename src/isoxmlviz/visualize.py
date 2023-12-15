@@ -252,7 +252,10 @@ def get_line_points(ref, line: ET.ElementTree):
 
 
 def get_polygon(ref, pln):
+    if not pln:
+        return None
     exterior_line = pln.find('./LSG[@A="1"]')
+
     points = get_line_points(ref, exterior_line)
     if len(points) == 0:
         # not implemented for polygons with no exterior
@@ -471,27 +474,35 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                     # we dont know by how much
                     def getExtrapoledLine(p1, p2, ext_length, from_start=False):
                         print("Extending line  from start %s"%str(from_start))
-                        print((p1, p2))
-                        'Creates a line extrapoled in p1->p2 direction'
-                        EXTRAPOL_RATIO = -ext_length #if from_start else ext_length
 
-                        if  not from_start:
-                            p1, p2 = p2, p1
 
-                        a = p1
-                        b = (p1[0] + EXTRAPOL_RATIO * (p2[0] - p1[0]), p1[1] + EXTRAPOL_RATIO * (p2[1] - p1[1]))
+                        direction_vector = (p2[0] - p1[0], p2[1] - p1[1])
 
-                        print((a,b))
-                        return LineString( [ b,a] if from_start else[a,b])
+                        if from_start:
+                            ext_length=-ext_length
 
-                    extension_length = base_line_string.length / 10.0
+                        t = ext_length / (direction_vector[0] ** 2 + direction_vector[1] ** 2) ** 0.5
+
+                        base = p1 if from_start else p2
+
+                        point_at_distance = shapely.geometry.Point(
+                            base[0] + t * direction_vector[0],
+                            base[1] + t * direction_vector[1]
+                        )
+
+                        return LineString([p1, point_at_distance] if from_start else [ p2,point_at_distance] )
+
+
+
+                    extension_length = 50#base_line_string.length / 10.0
                     ext_a_length = extension_length
                     ext_b_length = extension_length
 
                     # maybe we have a boundary which sounds like a good idea to extend it to
                     if parent_map[parent_map[parent]].tag == "PFD":
                         boundary = get_polygon(ref, parent_map[parent_map[parent]].find('.//PLN[@A="1"]'))
-                        base_line_string.intersection(boundary)
+                        if boundary:
+                            base_line_string.intersection(boundary)
                         # if boundary:
                         #     first, last = base_line_string.boundary
                         #     ext_a_length = first.distance(boundary.exterior)

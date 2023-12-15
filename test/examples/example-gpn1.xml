@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ISO11783_TaskData VersionMajor="4" VersionMinor="3" ManagementSoftwareManufacturer="-"
+                   ManagementSoftwareVersion="1.0.0" TaskControllerManufacturer="-" TaskControllerVersion="1.0.0"
+                   DataTransferOrigin="1">
+    <PFD A="PFD1" C="My field :-)" D="0">
+
+        <PLN A="1" B="Polygon 1">
+            <LSG A="1" B="Unknown">
+                <PNT A="1" C="56.368045" D="9.955447"/>
+                <PNT A="1" C="56.367945" D="9.956820"/>
+                <PNT A="1" C="56.367381" D="9.956653"/>
+                <PNT A="1" C="56.367506" D="9.955365"/>
+                <PNT A="1" C="56.368045" D="9.955447"/>
+
+            </LSG>
+        </PLN>
+
+        <GPG>
+
+
+            <GPN A="GPN1" B="AB" C="1" E="3" F="1">
+                <LSG A="5">
+                    <PNT A="6" C="56.367818" D="9.955535"/>
+                    <PNT A="7" C="56.367736" D="9.956606"/>
+                </LSG>
+            </GPN>
+
+            <GPN A="GPN1" B="AB" C="1" E="3" F="2">
+                <LSG A="5">
+                    <PNT A="6" C=" 56.367761" D="9.955536"/>
+                    <PNT A="7" C=" 56.367675" D="  9.956590"/>
+                </LSG>
+            </GPN>
+
+            <GPN A="GPN1" B="AB" C="1" E="3" F="3">
+                <LSG A="5">
+                    <PNT A="6" C=" 56.367707" D="  9.955537"/>
+                    <PNT A="7" C=" 56.367627" D="  9.956570"/>
+                </LSG>
+            </GPN>
+
+            <GPN A="GPN1" B="AB" C="1" E="3" F="4">
+                <LSG A="5">
+                    <PNT A="6" C=" 56.367635" D="  9.955536"/>
+                    <PNT A="7" C=" 56.367558" D="  9.956547"/>
+                </LSG>
+            </GPN>
+
+            <GPN A="GPN1" B="AB" C="3" E="3" F="1">
+                <LSG A="5">
+                    <PNT A="6" C="  56.367527" D="    9.955670"/>
+                    <PNT A="9" C="  56.367550" D="  9.955844"/>
+                    <PNT A="9" C="   56.367528" D="    9.956059"/>
+                    <PNT A="7" C="   56.367472" D="    9.956180"/>
+                </LSG>
+            </GPN>
+
+
+            <!--            <GPN A="GPN1" B="Adaptive Curve" C="3">-->
+            <!--                <LSG A="5">-->
+            <!--                    <PNT A="6" C="58.8754321" D="8.945632"/>-->
+            <!--                    <PNT A="9" C="58.8757777" D="8.94777"/>-->
+            <!--                    <PNT A="7" C="58.8789999" D="8.99889099"/>-->
+            <!--                </LSG>-->
+            <!--            </GPN>-->
+
+        </GPG>
+
+    </PFD>
+</ISO11783_TaskData>

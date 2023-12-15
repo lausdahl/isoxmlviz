@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ISO11783_TaskData VersionMajor="4" VersionMinor="3" ManagementSoftwareManufacturer="-"
+                   ManagementSoftwareVersion="1.0.0" TaskControllerManufacturer="-" TaskControllerVersion="1.0.0"
+                   DataTransferOrigin="1">
+    <PFD A="PFD1" C="My field :-)" D="0">
+
+
+        <GPG>
+
+            <GPN A="GPN1" B="Pivot (full)" C="4" D="1" E="1" H="10000">
+                <LSG A="5" C="4000">
+                    <PNT A="8" C="55.869630" D="9.682456"/>
+                </LSG>
+            </GPN>
+
+            <GPN A="GPN1" B="Pivot (clockwise)" C="4" D="1" E="1" H="8500">
+                <LSG A="5" C="1000">
+                    <PNT A="8" C="55.869725" D="9.677217"/>
+                    <PNT A="6" C="55.869487" D="9.677507"/>
+                    <PNT A="7" C="55.870057" D="9.678030"/>
+                </LSG>
+            </GPN>
+
+
+            <GPN A="GPN1" B="Pivot (clockwise)" C="4" D="1" E="1" H="86000">
+                <LSG A="5" C="7000">
+                    <PNT A="8" C="55.869888" D="9.675133"/>
+                </LSG>
+                <PLN A="8">
+                    <LSG A="1">
+                        <PNT A="2" C="55.870580" D="9.676026"/>
+                        <PNT A="2" C="55.869854" D="9.676963"/>
+                        <PNT A="2" C="55.869411" D="9.677338"/>
+                        <PNT A="2" C="55.868945" D="9.675729"/>
+                   <PNT A="2" C="55.870580" D="9.676026"/>
+                    </LSG>
+                </PLN>
+            </GPN>
+
+
+        </GPG>
+
+    </PFD>
+</ISO11783_TaskData>

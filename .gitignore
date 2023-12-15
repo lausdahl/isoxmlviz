@@ -4,3 +4,4 @@ dist
 *.pdf
 .idea/
 __pycache__/
+generated

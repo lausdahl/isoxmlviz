@@ -431,6 +431,8 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                             else:
                                 lines.append(offset_line)
 
+                designator = parent.attrib.get('B')
+
                 if len(lines) > 0:
                     trimmed_lines = [extract_lines_within(line, boundary_polygons) for line in lines]
 
@@ -439,7 +441,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
                     ax.add_collection(patchc)
 
-                    g = web_map.create_group('GuidanceLines-'+str(designator) + '_replicated_GPNs')
+                    g = web_map.create_group('GuidanceLines-' + str(designator) + '_replicated_GPNs')
                     for trimmed_line in [item for sublist in trimmed_lines for item in sublist]:
                         web_map.addPoly(trimmed_line, tooltip=designator,
                                         style={'color': 'purple', 'z-index': '0', 'opacity': '0.3'},
@@ -503,9 +505,10 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                 # it is a polygon as a width is given
                 width = int(line.attrib.get("C")) / 1000 if "C" in line.attrib.keys() else 1
 
-                poly =base_line_string.parallel_offset(width /2.0, 'left',
-                                                 join_style=JOIN_STYLE.mitre).union(base_line_string.parallel_offset(width /2.0, 'right',
-                                                 join_style=JOIN_STYLE.mitre)).convex_hull
+                poly = base_line_string.parallel_offset(width / 2.0, 'left',
+                                                        join_style=JOIN_STYLE.mitre).union(
+                    base_line_string.parallel_offset(width / 2.0, 'right',
+                                                     join_style=JOIN_STYLE.mitre)).convex_hull
 
                 web_map.add(poly, tooltip=designator, style={'color': get_color(line.attrib, 'E', 'red')},
                             group=group_obstacles)
@@ -515,11 +518,9 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
 
             else:
-                #it is a line
+                # it is a line
                 patch = LineCollection([base_line_string], linewidths=1.5,
                                        edgecolors="red", zorder=7)
-
-
 
                 web_map.add(base_line_string, tooltip=designator, style={'color': get_color(line.attrib, 'E', 'red')},
                             group=group_obstacles)

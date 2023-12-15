@@ -2,10 +2,11 @@ import unittest
 
 import matplotlib.pyplot as plt
 import shapely.geometry as SHP
-from descartes import PolygonPatch
+
 from matplotlib.collections import LineCollection
 
 from isoxmlviz.LineStringUtil import is_point_on_line, extract_line_within
+from isoxmlviz.visualize import PolygonPatch
 
 
 class ShapelyIntersectionTest(unittest.TestCase):

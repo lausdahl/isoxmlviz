@@ -10,7 +10,7 @@ from the repo root run the following commands:
 ```bash
 # make the environment
 pipenv install
-# run the project tests in the tests folder
+# run the project test in the test folder
 pipenv test
 # install the build tools to build the package
 pipenv build_update

@@ -48,13 +48,14 @@ default_propagation_num = 100
 def generate_web_safe_colors():
     color_levels = [0, 51, 102, 153, 204, 255]
     web_safe_colors = [
-        "#{:02X}{:02X}{:02X}{:02X}".format( r, g, b,a)
-        for a in [255]#color_levels
+        "#{:02X}{:02X}{:02X}{:02X}".format(r, g, b, a)
+        for a in [255]  # color_levels
         for r in color_levels
         for g in color_levels
         for b in color_levels
     ]
     return web_safe_colors
+
 
 colour_map = {
     0: 'black',
@@ -75,8 +76,8 @@ colour_map = {
     15: 'navy',
 }
 
-for idx,c in enumerate(generate_web_safe_colors()):
-    colour_map[idx+16] = c
+for idx, c in enumerate(generate_web_safe_colors()):
+    colour_map[idx + 16] = c
 
 
 def pnt_to_pair(element: ET):
@@ -96,7 +97,7 @@ class WebGroups:
     def __init__(self) -> None:
         super().__init__()
 
-        self.line_type_groups= {}
+        self.line_type_groups = {}
         self.polygon_type_groups = {}
         self.field_name_group = None
 
@@ -276,7 +277,8 @@ def plot_all_pln(ax, parent_map, web_map, ref, root, polygon_type_groups):
         polygon_type = int(pln.attrib.get("A"))
         group = None
 
-        group_names = {1: 'Boundary', 2: 'Treatment zone', 3: 'Water',4:'PrimaryArea',5:'Road', 6: 'Obstacles',9:'Mainfield', 8: 'Other', 10: 'Headland',11:'BufferZone',12:'Windbreak'}
+        group_names = {1: 'Boundary', 2: 'Treatment zone', 3: 'Water', 4: 'PrimaryArea', 5: 'Road', 6: 'Obstacles',
+                       9: 'Mainfield', 8: 'Other', 10: 'Headland', 11: 'BufferZone', 12: 'Windbreak'}
 
         if polygon_type in [1, 2, 3, 6, 8, 9, 10]:
             if polygon_type not in polygon_type_groups:

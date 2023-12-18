@@ -181,7 +181,7 @@ def show_task_file(version_prefix, name, tree, save_pdf: bool = False, save_svg:
     if not groups:
         groups = WebGroups()
 
-    part_fields = root.findall(".//PFD")
+    part_fields = root.findall(".//PFD")+root.findall(".//TSK")
 
     if not use_subplot or len(part_fields) == 1:
         fig = plt.figure()

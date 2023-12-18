@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection, LineCollection
 from shapely.geometry import LineString, JOIN_STYLE, MultiLineString, MultiPoint
 import math
-from isoxmlviz.LineStringUtil import extract_lines_within
+from isoxmlviz.LineStringUtil import extract_lines_within, get_coordinates
 from isoxmlviz.webmap import WebMap
 
 
@@ -449,7 +449,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
                     base_line_string = LineString(filter_pivot_line_ab(poly.exterior))
 
-                    patch = LineCollection([base_line_string], linewidths=1.5,
+                    patch = LineCollection([base_line_string.coords], linewidths=1.5,
                                            edgecolors="black", zorder=7)
                     ax.add_collection(patch)
 
@@ -475,7 +475,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                             # if pivot_cutout:
                             #     guidance_lines = [extract_lines_within(line,[ pivot_cutout],invert=True) for line in lines]
 
-                            patchc = LineCollection([item for sublist in guidance_lines for item in sublist],
+                            patchc = LineCollection(get_coordinates([item for sublist in guidance_lines for item in sublist]),
                                                     linewidths=1,
                                                     edgecolors="purple", zorder=5, alpha=0.5)
 
@@ -619,7 +619,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
                 # plot the baseline
                 # https://stackoverflow.com/questions/19877666/add-legends-to-linecollection-plot
-                patch = LineCollection(extract_lines_within(base_line_string, boundary_polygons), linewidths=1.5,
+                patch = LineCollection(get_coordinates( extract_lines_within(base_line_string, boundary_polygons)), linewidths=1.5,
                                        edgecolors="goldenrod", zorder=7)
                 ax.add_collection(patch)
 

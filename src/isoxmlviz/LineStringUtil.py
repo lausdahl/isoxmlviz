@@ -31,11 +31,13 @@ def is_point_on_line(a, b, point):
 extract line segments from a line and a list of polygon restricting the line to within the polygon. May result in many line segments
 '''
 
+def get_coordinates(lines: list[LineString]):
+    return [l.coords for l in lines]
 
 def extract_lines_within(base_line: LineString, polygons: list[Polygon]):
     lines = [base_line]
     if len(polygons) == 0:
-        return lines
+        return  lines
 
     for p in polygons:
         lines = [extract_line_within(line, p) for line in lines]
@@ -62,7 +64,7 @@ def extract_line_within(base_line: LineString, polygon: Polygon):
     if type(inter2) is Point:
         interpolated_points.append(inter2)
     elif type(inter2) is MultiPoint:
-        for p in inter2:
+        for p in inter2.geoms:
             interpolated_points.append(p)
 
     for a, b in pairwise(base_line.coords):

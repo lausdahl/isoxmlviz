@@ -20,7 +20,7 @@ def test_visualize(filename):
     tree = ET.parse(filename)
     show_task_file(None, str(Path(filename).name),
                    tree,
-                   hide=True, save_pdf=True, save_svg=True, use_subplot=False,
+                   hide=False, save_pdf=True, save_svg=True, use_subplot=False,
                    web_map=web_map,
                    output_base_name=str(output_dir), groups=web_groups)
     web_map.save(str(output_dir / "map.html"))

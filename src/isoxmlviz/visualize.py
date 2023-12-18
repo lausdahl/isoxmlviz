@@ -343,14 +343,14 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
     for line in root.findall(".//LSG"):
         print("Processing line '%s'" % line.attrib.get("B"))
 
-        def get_pnts(pnt_type_filter=None)->[shapely.geometry.Point]:
-            points_elements = line.findall("./PNT") if not pnt_type_filter else line.findall("./PNT[@A='%s']"%pnt_type_filter)
+        def get_pnts(pnt_type_filter=None) -> [shapely.geometry.Point]:
+            points_elements = line.findall("./PNT") if not pnt_type_filter else line.findall(
+                "./PNT[@A='%s']" % pnt_type_filter)
             point_data = [pnt_to_pair(pelement) for pelement in points_elements]
             return [pymap3d.geodetic2enu(p[0], p[1], 0, ref[0], ref[1], 0, ell=ell_wgs84, deg=True) for p in
-                      point_data]
+                    point_data]
 
-
-        points =get_pnts()
+        points = get_pnts()
 
         type = int(line.attrib.get("A"))
         designator = line.attrib.get("B")
@@ -377,7 +377,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
                 gpn_type = int(parent.attrib.get("C"))
 
-                if not gpn_type in [1, 2, 3,4, 5]:
+                if not gpn_type in [1, 2, 3, 4, 5]:
                     print("GPN %d not implemented" % gpn_type)
                     continue
 
@@ -390,38 +390,80 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                     a_pnts = get_pnts('6')
                     b_pnts = get_pnts('7')
 
-                    if not 'H' in parent.attrib.keys() or len(center_pnts)==0:
+                    # if len(a_pnts)>0:
+                    #     web_map.add_marker(designator + '-A-pivot', shapely.geometry.Point(a_pnts[0]), group=guidance_plot_group)
+                    # if len(b_pnts)>0:
+                    #     web_map.add_marker(designator + '-B-pivot', shapely.geometry.Point(b_pnts[0]), group=guidance_plot_group)
+
+                    if not 'H' in parent.attrib.keys() or len(center_pnts) == 0:
                         print('Invalid pivot')
                         continue
 
                     pivot_cutout = None
-                    if len(a_pnts) >0 and len(b_pnts)>0:
-                        #we have a cut out to lets add it as a boundary limitation
+                    if len(a_pnts) > 0 and len(b_pnts) > 0:
+                        # we have a cut out to lets add it as a boundary limitation
                         from shapely.geometry import Polygon
-                        pivot_cutout = Polygon(b_pnts+center_pnts+a_pnts+b_pnts)
+                        pivot_cutout = Polygon(b_pnts + center_pnts + a_pnts + b_pnts)
 
-                    radius = int(parent.attrib.get("H"))/1000.0
+                    radius = int(parent.attrib.get("H")) / 1000.0
 
                     center = shapely.geometry.Point(center_pnts[0])
 
                     # outer perimiter of pivot
-                    poly=center.buffer(radius)
+                    poly = center.buffer(radius)
 
-                    base_line_string = LineString(poly.exterior)
+                    def calculate_angle(point1, point2):
+                        x1, y1 = point1.x, point1.y
+                        x2, y2 = point2.x, point2.y
+
+                        angle = math.atan2(y2 - y1, x2 - x1)
+                        angle_degrees = math.degrees(angle)
+
+                        return angle_degrees
+
+                    def is_angle_between(angle, start_angle, end_angle):
+                        # Normalize angles to be within the range [0, 360)
+                        angle = angle % 360
+                        start_angle = start_angle % 360
+                        end_angle = end_angle % 360
+
+                        # Handle the case where end_angle is smaller than start_angle
+                        if start_angle <= end_angle:
+                            return start_angle <= angle <= end_angle
+                        else:
+                            # Angle range wraps around the circle (e.g., start_angle = 330, end_angle = 30)
+                            return start_angle <= angle or angle <= end_angle
+
+                    def filter_pivot_line_ab(line):
+                        if len(a_pnts) > 0 and len(b_pnts) > 0:
+                            a_angle = calculate_angle(center, shapely.geometry.Point(a_pnts[0]))
+                            b_angle = calculate_angle(center, shapely.geometry.Point(b_pnts[0]))
+                            # print('A %f B %f' % (a_angle, b_angle))
+                            # print([calculate_angle(center, shapely.geometry.Point(p)) for p in line.coords     ])
+                            # We should probably add the a and b points to the line as its will make sure it terminates at the a and b angles
+                            return [p for p in line.coords if
+                                    not is_angle_between(calculate_angle(center, shapely.geometry.Point(p)), a_angle,
+                                                         b_angle)]
+                        else:
+                            return line
+
+                    base_line_string = LineString(filter_pivot_line_ab(poly.exterior))
 
                     patch = LineCollection([base_line_string], linewidths=1.5,
                                            edgecolors="black", zorder=7)
                     ax.add_collection(patch)
 
-                    web_map.add(base_line_string, tooltip=designator+'-pivot-boundary', style={'color': 'black'}, group=guidance_plot_group)
+                    web_map.add(base_line_string, tooltip=designator + '-pivot-boundary', style={'color': 'black'},
+                                group=guidance_plot_group)
 
                     if "C" in line.attrib.keys():
                         width = int(line.attrib.get("C")) / 1000 if "C" in line.attrib.keys() else 1
 
-                        lines=[]
+                        lines = []
 
-                        for offset in range(1, int((radius/width)+1)):
-                            offset_line =LineString( center.buffer(offset*width-(width/2.0)).exterior)
+                        for offset in range(1, int((radius / width) + 1)):
+                            offset_line = LineString(
+                                filter_pivot_line_ab(center.buffer(offset * width - (width / 2.0)).exterior))
                             if isinstance(offset_line, MultiLineString):
                                 for line in offset_line:
                                     lines.append(line)
@@ -433,7 +475,8 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                             # if pivot_cutout:
                             #     guidance_lines = [extract_lines_within(line,[ pivot_cutout],invert=True) for line in lines]
 
-                            patchc = LineCollection([item for sublist in guidance_lines for item in sublist], linewidths=1,
+                            patchc = LineCollection([item for sublist in guidance_lines for item in sublist],
+                                                    linewidths=1,
                                                     edgecolors="purple", zorder=5, alpha=0.5)
 
                             ax.add_collection(patchc)
@@ -451,7 +494,6 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                     6 for A and 7 fot B"""
 
                     continue
-
 
                 if gpn_type == 2:
                     # calculate second point
@@ -473,13 +515,12 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
                     # we dont know by how much
                     def getExtrapoledLine(p1, p2, ext_length, from_start=False):
-                        print("Extending line  from start %s"%str(from_start))
-
+                        print("Extending line  from start %s" % str(from_start))
 
                         direction_vector = (p2[0] - p1[0], p2[1] - p1[1])
 
                         if from_start:
-                            ext_length=-ext_length
+                            ext_length = -ext_length
 
                         t = ext_length / (direction_vector[0] ** 2 + direction_vector[1] ** 2) ** 0.5
 
@@ -490,11 +531,9 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                             base[1] + t * direction_vector[1]
                         )
 
-                        return LineString([p1, point_at_distance] if from_start else [ p2,point_at_distance] )
+                        return LineString([p1, point_at_distance] if from_start else [p2, point_at_distance])
 
-
-
-                    extension_length = 50#base_line_string.length / 10.0
+                    extension_length = 50  # base_line_string.length / 10.0
                     ext_a_length = extension_length
                     ext_b_length = extension_length
 
@@ -538,7 +577,6 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                     number_of_swaths_left = int(parent.attrib.get("N"))
                 if parent.attrib.get("O"):
                     number_of_swaths_right = int(parent.attrib.get("O"))
-
 
                 lines = []
 

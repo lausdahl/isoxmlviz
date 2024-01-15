@@ -606,7 +606,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                 if len(lines) > 0:
                     guidance_lines = [extract_lines_within(line, boundary_polygons) for line in lines]
 
-                    patchc = LineCollection([item for sublist in guidance_lines for item in sublist], linewidths=1,
+                    patchc = LineCollection(get_coordinates([item for sublist in guidance_lines for item in sublist]), linewidths=1,
                                             edgecolors="purple", zorder=5, alpha=0.5)
 
                     ax.add_collection(patchc)
@@ -633,7 +633,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                     # isoxml 3 guidance line
 
                 base_line_string = LineString([(p[0], p[1]) for p in points])
-                patch = LineCollection([base_line_string], linewidths=1.5,
+                patch = LineCollection(get_coordinates([base_line_string]), linewidths=1.5,
                                        edgecolors="goldenrod", zorder=7)
                 ax.add_collection(patch)
 
@@ -668,7 +668,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
             else:
                 # it is a line
-                patch = LineCollection([base_line_string], linewidths=1.5,
+                patch = LineCollection(get_coordinates([base_line_string]), linewidths=1.5,
                                        edgecolors="red", zorder=7)
 
                 web_map.add(base_line_string, tooltip=designator, style={'color': get_color(line.attrib, 'E', 'red')},

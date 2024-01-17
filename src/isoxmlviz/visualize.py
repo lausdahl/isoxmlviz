@@ -30,7 +30,7 @@ def PolygonPatch(polygon, **kwargs):
 
     """
     if type(polygon) is shapely.geometry.MultiPolygon:
-        return PatchCollection([PolygonPatch(p, **kwargs) for p in polygon])
+        return PatchCollection([PolygonPatch(p, **kwargs) for p in polygon.geoms])
     # from descartes but no longer maintained so inspired by https://github.com/geopandas/geopandas/issues/1039
     from matplotlib.path import Path
     from matplotlib.patches import Polygon

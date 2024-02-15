@@ -181,7 +181,7 @@ def show_task_file(version_prefix, name, tree, save_pdf: bool = False, save_svg:
     if not groups:
         groups = WebGroups()
 
-    part_fields = root.findall(".//PFD")+root.findall(".//TSK")
+    part_fields = root.findall(".//PFD") + root.findall(".//TSK")
 
     if not use_subplot or len(part_fields) == 1:
         fig = plt.figure()
@@ -205,6 +205,7 @@ def show_task_file(version_prefix, name, tree, save_pdf: bool = False, save_svg:
             ax.title.set_text(pfd.attrib.get("C"))
         plot_all_pln(ax, parent_map, web_map, ref, pfd, groups.polygon_type_groups)
         plot_all_lsg(ax, parent_map, web_map, ref, pfd, gpn_filter=gpn_filter, line_type_groups=groups.line_type_groups)
+        plot_all_pnt(ax, parent_map, web_map, ref, pfd)
         plot_center_name(name, pfd, ref, web_map, group=groups.field_name_group)
 
         ax.axis("equal")
@@ -305,7 +306,7 @@ def plot_all_pln(ax, parent_map, web_map, ref, root, polygon_type_groups):
 
             web_map.add(polygon, tooltip=designator, style={'color': color, 'fillOpacity': '0.1'}, group=group)
         elif polygon_type == 3:  # water
-            patch = PolygonPatch([polygon], linewidth=2, facecolor="blue", alpha=0.1)
+            patch = PolygonPatch(polygon, linewidth=2, facecolor="blue", alpha=0.1)
             web_map.add(polygon, tooltip=designator, style={'color': 'blue', 'fillOpacity': '0.1'}, group=group)
         elif polygon_type == 6:  # obstacle
             patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="red")
@@ -339,18 +340,35 @@ def get_color(attrib, key, default_colour):
     return default_colour
 
 
+def get_pnts(node, ref, pnt_type_filter=None) -> [shapely.geometry.Point]:
+    points_elements = node.findall("./PNT") if not pnt_type_filter else node.findall(
+        "./PNT[@A='%s']" % pnt_type_filter)
+    point_data = [pnt_to_pair(pelement) for pelement in points_elements]
+    return [pymap3d.geodetic2enu(p[0], p[1], 0, ref[0], ref[1], 0, ell=ell_wgs84, deg=True) for p in
+            point_data]
+
+def plot_all_pnt(ax, parent_map, web_map, ref, root, line_type_groups=None, gpn_filter=None):
+    for pnt in root.findall("./PNT"):
+        print("Processing line '%s'" % pnt.attrib.get("B") if 'B' in pnt.attrib else 'No Designator')
+        p_type = int(pnt.attrib.get("A"))
+        if p_type not in [1,2,3,4,5,10,11]:
+            continue
+
+        point_data = [pnt_to_pair(pelement) for pelement in [pnt]]
+        point=SHP.Point( [pymap3d.geodetic2enu(p[0], p[1], 0, ref[0], ref[1], 0, ell=ell_wgs84, deg=True) for p in
+                point_data][0])
+
+        web_map.add_point(pnt.attrib.get("B") if 'B' in pnt.attrib else 'Type %d' % p_type,
+                            point, style={'color': get_color(pnt.attrib, 'F', 'black')}, group=None)
+        ax.plot(point.x, point.y)
+
+
+
 def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filter=None):
     for line in root.findall(".//LSG"):
         print("Processing line '%s'" % line.attrib.get("B"))
 
-        def get_pnts(pnt_type_filter=None) -> [shapely.geometry.Point]:
-            points_elements = line.findall("./PNT") if not pnt_type_filter else line.findall(
-                "./PNT[@A='%s']" % pnt_type_filter)
-            point_data = [pnt_to_pair(pelement) for pelement in points_elements]
-            return [pymap3d.geodetic2enu(p[0], p[1], 0, ref[0], ref[1], 0, ell=ell_wgs84, deg=True) for p in
-                    point_data]
-
-        points = get_pnts()
+        points = get_pnts(line, ref)
 
         type = int(line.attrib.get("A"))
         designator = line.attrib.get("B")
@@ -386,9 +404,9 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                 designator = parent.attrib.get('B')
 
                 if gpn_type == 4:
-                    center_pnts = get_pnts('8')
-                    a_pnts = get_pnts('6')
-                    b_pnts = get_pnts('7')
+                    center_pnts = get_pnts(line, ref, '8')
+                    a_pnts = get_pnts(line, ref, '6')
+                    b_pnts = get_pnts(line, ref, '7')
 
                     # if len(a_pnts)>0:
                     #     web_map.add_marker(designator + '-A-pivot', shapely.geometry.Point(a_pnts[0]), group=guidance_plot_group)
@@ -475,9 +493,10 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                             # if pivot_cutout:
                             #     guidance_lines = [extract_lines_within(line,[ pivot_cutout],invert=True) for line in lines]
 
-                            patchc = LineCollection(get_coordinates([item for sublist in guidance_lines for item in sublist]),
-                                                    linewidths=1,
-                                                    edgecolors="purple", zorder=5, alpha=0.5)
+                            patchc = LineCollection(
+                                get_coordinates([item for sublist in guidance_lines for item in sublist]),
+                                linewidths=1,
+                                edgecolors="purple", zorder=5, alpha=0.5)
 
                             ax.add_collection(patchc)
 
@@ -606,7 +625,8 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                 if len(lines) > 0:
                     guidance_lines = [extract_lines_within(line, boundary_polygons) for line in lines]
 
-                    patchc = LineCollection(get_coordinates([item for sublist in guidance_lines for item in sublist]), linewidths=1,
+                    patchc = LineCollection(get_coordinates([item for sublist in guidance_lines for item in sublist]),
+                                            linewidths=1,
                                             edgecolors="purple", zorder=5, alpha=0.5)
 
                     ax.add_collection(patchc)
@@ -619,7 +639,8 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
                 # plot the baseline
                 # https://stackoverflow.com/questions/19877666/add-legends-to-linecollection-plot
-                patch = LineCollection(get_coordinates( extract_lines_within(base_line_string, boundary_polygons)), linewidths=1.5,
+                patch = LineCollection(get_coordinates(extract_lines_within(base_line_string, boundary_polygons)),
+                                       linewidths=1.5,
                                        edgecolors="goldenrod", zorder=7)
                 ax.add_collection(patch)
 

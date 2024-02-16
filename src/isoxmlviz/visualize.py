@@ -675,10 +675,10 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                 # it is a polygon as a width is given
                 width = int(line.attrib.get("C")) / 1000 if "C" in line.attrib.keys() else 1
 
-                poly = base_line_string.parallel_offset(width / 2.0, 'left',
+                poly = shapely.concave_hull(base_line_string.parallel_offset(width / 2.0, 'left',
                                                         join_style=JOIN_STYLE.mitre).union(
                     base_line_string.parallel_offset(width / 2.0, 'right',
-                                                     join_style=JOIN_STYLE.mitre)).convex_hull
+                                                     join_style=JOIN_STYLE.mitre)))
 
                 web_map.add(poly, tooltip=designator, style={'color': get_color(line.attrib, 'E', 'red')},
                             group=group_obstacles)

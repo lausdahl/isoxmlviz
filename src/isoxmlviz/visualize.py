@@ -256,6 +256,20 @@ def get_polygon(ref, pln):
     if not pln:
         return None
     exterior_line = pln.find('./LSG[@A="1"]')
+    return get_polygon_with_interior(ref, pln, exterior_line)
+
+
+def get_expanded_polygons(ref, pln):
+    """
+    This is to expand otherwise invalid polygons what has multiple boundaries into valid polygons
+    """
+    if not pln:
+        return None
+
+    return [get_polygon_with_interior(ref, pln, exterior_line) for exterior_line in pln.findall('./LSG[@A="1"]')]
+
+
+def get_polygon_with_interior(ref, pln, exterior_line):
 
     points = get_line_points(ref, exterior_line)
     if len(points) == 0:
@@ -274,62 +288,64 @@ def plot_all_pln(ax, parent_map, web_map, ref, root, polygon_type_groups):
         designator = pln.attrib.get("C")
         print("Processing line '%s'" % designator)
 
-        polygon = get_polygon(ref, pln)
-        if polygon is None:
-            continue
+        for polygon in get_expanded_polygons(ref, pln):
+            # polygon = get_polygon(ref, pln)
+            if polygon is None:
+                continue
 
-        polygon_type = int(pln.attrib.get("A"))
-        group = None
+            polygon_type = int(pln.attrib.get("A"))
+            group = None
 
-        group_names = {1: 'Boundary', 2: 'Treatment zone', 3: 'Water', 4: 'PrimaryArea', 5: 'Road', 6: 'Obstacles',
-                       9: 'Mainfield', 8: 'Other', 10: 'Headland', 11: 'BufferZone', 12: 'Windbreak'}
+            group_names = {1: 'Boundary', 2: 'Treatment zone', 3: 'Water', 4: 'PrimaryArea', 5: 'Road', 6: 'Obstacles',
+                           9: 'Mainfield', 8: 'Other', 10: 'Headland', 11: 'BufferZone', 12: 'Windbreak'}
 
-        if polygon_type in [1, 2, 3, 6, 8, 9, 10]:
-            if polygon_type not in polygon_type_groups:
-                polygon_type_groups[polygon_type] = web_map.create_group(group_names[polygon_type])
-            group = polygon_type_groups[polygon_type]
-        else:
-            if polygon_type not in polygon_type_groups:
-                polygon_type_groups[polygon_type] = web_map.create_group("Other polygons")
-            group = polygon_type_groups[polygon_type]
+            if polygon_type in [1, 2, 3, 6, 8, 9, 10]:
+                if polygon_type not in polygon_type_groups:
+                    polygon_type_groups[polygon_type] = web_map.create_group(group_names[polygon_type])
+                group = polygon_type_groups[polygon_type]
+            else:
+                if polygon_type not in polygon_type_groups:
+                    polygon_type_groups[polygon_type] = web_map.create_group("Other polygons")
+                group = polygon_type_groups[polygon_type]
 
-        if polygon_type == 1:  # boundary
-            patch = PolygonPatch(polygon.buffer(0), alpha=1, zorder=2, facecolor="black", linewidth=2, fill=False)
-            web_map.add(polygon, tooltip=designator, style={'color': 'black', 'fillOpacity': '0'}, group=group)
-        elif polygon_type == 2:  # treatmentzone
-            patch = PolygonPatch(polygon.buffer(0), linewidth=2, facecolor="gray", alpha=0.1,
-                                 hatch="...", fill=False)
-            if 'B' in parent_map[pln].attrib:
-                designator = parent_map[pln].attrib['B']
+            if polygon_type == 1:  # boundary
+                patch = PolygonPatch(polygon.buffer(0), alpha=1, zorder=2, facecolor="black", linewidth=2, fill=False)
+                web_map.add(polygon, tooltip=designator, style={'color': 'black', 'fillOpacity': '0'}, group=group)
+            elif polygon_type == 2:  # treatmentzone
+                patch = PolygonPatch(polygon.buffer(0), linewidth=2, facecolor="gray", alpha=0.1,
+                                     hatch="...", fill=False)
+                if 'B' in parent_map[pln].attrib:
+                    designator = parent_map[pln].attrib['B']
 
-            color = get_color(parent_map[pln].attrib, 'C', 'gray')
+                color = get_color(parent_map[pln].attrib, 'C', 'gray')
 
-            web_map.add(polygon, tooltip=designator, style={'color': color, 'fillOpacity': '0.1'}, group=group)
-        elif polygon_type == 3:  # water
-            patch = PolygonPatch(polygon, linewidth=2, facecolor="blue", alpha=0.1)
-            web_map.add(polygon, tooltip=designator, style={'color': 'blue', 'fillOpacity': '0.1'}, group=group)
-        elif polygon_type == 6:  # obstacle
-            patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="red")
-            web_map.add(polygon, tooltip=designator, style={'color': 'red'}, group=group)
-        elif polygon_type == 8:  # other
-            patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="gray")
-            web_map.add(polygon, tooltip=designator, style={'color': 'gray', 'fillOpacity': '0.5'}, group=group)
-        elif polygon_type == 9:  # mainland
-            patch = PolygonPatch(polygon.buffer(0), alpha=0.2, zorder=2, facecolor="forestgreen", linewidth=0)
-            web_map.add(polygon, tooltip=designator, style={'color': 'forestgreen', 'fillOpacity': '0.2'}, group=group)
-        elif polygon_type == 10:  # headland
-            patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="springgreen")
-            web_map.add(polygon, tooltip=designator,
-                        style={'color': 'springgreen', 'opacity': '0.3', 'fillOpacity': '0.1', 'z-index': '2'},
-                        group=group)
-        else:
-            patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="violet")
-            web_map.add(polygon, tooltip=designator, style={'color': 'violet', 'fillOpacity': '0.1'}, group=group)
+                web_map.add(polygon, tooltip=designator, style={'color': color, 'fillOpacity': '0.1'}, group=group)
+            elif polygon_type == 3:  # water
+                patch = PolygonPatch(polygon, linewidth=2, facecolor="blue", alpha=0.1)
+                web_map.add(polygon, tooltip=designator, style={'color': 'blue', 'fillOpacity': '0.1'}, group=group)
+            elif polygon_type == 6:  # obstacle
+                patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="red")
+                web_map.add(polygon, tooltip=designator, style={'color': 'red'}, group=group)
+            elif polygon_type == 8:  # other
+                patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="gray")
+                web_map.add(polygon, tooltip=designator, style={'color': 'gray', 'fillOpacity': '0.5'}, group=group)
+            elif polygon_type == 9:  # mainland
+                patch = PolygonPatch(polygon.buffer(0), alpha=0.2, zorder=2, facecolor="forestgreen", linewidth=0)
+                web_map.add(polygon, tooltip=designator, style={'color': 'forestgreen', 'fillOpacity': '0.2'},
+                            group=group)
+            elif polygon_type == 10:  # headland
+                patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="springgreen")
+                web_map.add(polygon, tooltip=designator,
+                            style={'color': 'springgreen', 'opacity': '0.3', 'fillOpacity': '0.1', 'z-index': '2'},
+                            group=group)
+            else:
+                patch = PolygonPatch(polygon.buffer(0), alpha=0.1, zorder=2, facecolor="violet")
+                web_map.add(polygon, tooltip=designator, style={'color': 'violet', 'fillOpacity': '0.1'}, group=group)
 
-        if type(patch) is PatchCollection:
-            ax.add_collection(patch)
-        else:
-            ax.add_patch(patch)
+            if type(patch) is PatchCollection:
+                ax.add_collection(patch)
+            else:
+                ax.add_patch(patch)
 
 
 def get_color(attrib, key, default_colour):
@@ -347,21 +363,21 @@ def get_pnts(node, ref, pnt_type_filter=None) -> [shapely.geometry.Point]:
     return [pymap3d.geodetic2enu(p[0], p[1], 0, ref[0], ref[1], 0, ell=ell_wgs84, deg=True) for p in
             point_data]
 
+
 def plot_all_pnt(ax, parent_map, web_map, ref, root, line_type_groups=None, gpn_filter=None):
     for pnt in root.findall("./PNT"):
         print("Processing line '%s'" % pnt.attrib.get("B") if 'B' in pnt.attrib else 'No Designator')
         p_type = int(pnt.attrib.get("A"))
-        if p_type not in [1,2,3,4,5,10,11]:
+        if p_type not in [1, 2, 3, 4, 5, 10, 11]:
             continue
 
         point_data = [pnt_to_pair(pelement) for pelement in [pnt]]
-        point=SHP.Point( [pymap3d.geodetic2enu(p[0], p[1], 0, ref[0], ref[1], 0, ell=ell_wgs84, deg=True) for p in
-                point_data][0])
+        point = SHP.Point([pymap3d.geodetic2enu(p[0], p[1], 0, ref[0], ref[1], 0, ell=ell_wgs84, deg=True) for p in
+                           point_data][0])
 
         web_map.add_point(pnt.attrib.get("B") if 'B' in pnt.attrib else 'Type %d' % p_type,
-                            point, style={'color': get_color(pnt.attrib, 'F', 'black')}, group=None)
+                          point, style={'color': get_color(pnt.attrib, 'F', 'black')}, group=None)
         ax.plot(point.x, point.y)
-
 
 
 def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filter=None):
@@ -676,7 +692,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                 width = int(line.attrib.get("C")) / 1000 if "C" in line.attrib.keys() else 1
 
                 poly = shapely.concave_hull(base_line_string.parallel_offset(width / 2.0, 'left',
-                                                        join_style=JOIN_STYLE.mitre).union(
+                                                                             join_style=JOIN_STYLE.mitre).union(
                     base_line_string.parallel_offset(width / 2.0, 'right',
                                                      join_style=JOIN_STYLE.mitre)))
 

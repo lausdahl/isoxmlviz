@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<ISO11783_TaskData DataTransferOrigin="1" ManagementSoftwareManufacturer="Me" ManagementSoftwareVersion="1.0" VersionMajor="3" VersionMinor="3">
+<PFD A="PFD-439" C="F" D="0">
+	<PLN A="1">
+		<LSG A="1" B="Boundary1">
+			<PNT A="2" C="56.913113044827305" D="4.852070283889771"/>
+			<PNT A="2" C="56.91333627317525" D="4.853507947921754"/>
+			<PNT A="2" C="56.91261102841157" D="4.854148518138544"/>
+			<PNT A="2" C="56.912297914039826" D="4.852821302413941"/>
+		</LSG>
+		<LSG A="1" B="Boundary2">
+			<PNT A="2" C="56.913344728773424" D="4.853577685356141"/>
+			<PNT A="2" C="56.912629545980785" D="4.854227009893679"/>
+			<PNT A="2" C="56.91306231096256" D="4.8560614109039316"/>
+			<PNT A="2" C="56.91356626489867" D="4.854811501502992"/>
+		</LSG>
+	</PLN>
+</PFD>
+</ISO11783_TaskData>

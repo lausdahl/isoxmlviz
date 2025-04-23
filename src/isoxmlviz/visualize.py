@@ -536,6 +536,8 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                         print("A+ missing angle")
                         continue
                     angle = float(parent.attrib.get("G"))
+                    # the compas heading is clockwise and the unit circle is counter clockwise
+                    angle= (90 - angle) % 360
                     length = 10
                     endy = points[0][1] + length * math.sin(math.radians(angle))
                     endx = points[0][0] + length * math.cos(math.radians(angle))

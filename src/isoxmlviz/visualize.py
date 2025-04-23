@@ -452,18 +452,18 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
                         angle = math.atan2(y2 - y1, x2 - x1)
                         angle_degrees = math.degrees(angle)
-
-                        return angle_degrees
+                        normalized_degrees = (angle_degrees  + 360) % 360
+                        return normalized_degrees
 
                     def is_angle_between(angle, start_angle, end_angle):
                         # Normalize angles to be within the range [0, 360)
-                        angle = angle % 360
-                        start_angle = start_angle % 360
-                        end_angle = end_angle % 360
+                        # angle = angle % 360
+                        # start_angle = start_angle % 360
+                        # end_angle = end_angle % 360
 
                         # Handle the case where end_angle is smaller than start_angle
                         if start_angle <= end_angle:
-                            return start_angle <= angle <= end_angle
+                            return start_angle >= angle >= end_angle
                         else:
                             # Angle range wraps around the circle (e.g., start_angle = 330, end_angle = 30)
                             return start_angle <= angle or angle <= end_angle
@@ -475,9 +475,15 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                             # print('A %f B %f' % (a_angle, b_angle))
                             # print([calculate_angle(center, shapely.geometry.Point(p)) for p in line.coords     ])
                             # We should probably add the a and b points to the line as its will make sure it terminates at the a and b angles
-                            return [p for p in line.coords if
-                                    not is_angle_between(calculate_angle(center, shapely.geometry.Point(p)), a_angle,
-                                                         b_angle)]
+                            cheese =  [p
+
+                                       if not is_angle_between(calculate_angle(center, shapely.geometry.Point(p)), a_angle,
+                                                         b_angle) else (center.x,center.y)
+
+
+                                       for p in line.coords
+                                       ]
+                            return cheese
                         else:
                             return line
 
@@ -489,6 +495,10 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
                     web_map.add(base_line_string, tooltip=designator + '-pivot-boundary', style={'color': 'black'},
                                 group=guidance_plot_group)
+
+                    # web_map.add_marker("C", center, group=guidance_plot_group)
+                    # web_map.add_marker("A "+str(calculate_angle(center, shapely.geometry.Point(a_pnts[0]))), shapely.Point(a_pnts), group=guidance_plot_group)
+                    # web_map.add_marker("B "+ str(calculate_angle(center, shapely.geometry.Point(b_pnts[0]))), shapely.Point(b_pnts), group=guidance_plot_group)
 
                     if "C" in line.attrib.keys():
                         width = int(line.attrib.get("C")) / 1000 if "C" in line.attrib.keys() else 1

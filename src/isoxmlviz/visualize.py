@@ -280,8 +280,11 @@ def get_polygon_with_interior(ref, pln, exterior_line):
 
     interiors = [SHP.Polygon([[p[0], p[1]] for p in g]) for g in interior_points]
 
-    return SHP.Polygon(exterior_points, [p.exterior.coords for p in interiors])
-
+    try:
+        return SHP.Polygon(exterior_points, [p.exterior.coords for p in interiors])
+    except ValueError:
+        print("Invalid polygon")
+        return None
 
 def plot_all_pln(ax, parent_map, web_map, ref, root, polygon_type_groups):
     for pln in root.findall(".//PLN"):

@@ -11,7 +11,8 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection, LineCollection
 from shapely.geometry import LineString, JOIN_STYLE, MultiLineString, MultiPoint
 import math
-from isoxmlviz.LineStringUtil import extract_lines_within, get_coordinates
+from isoxmlviz.LineStringUtil import extract_lines_within, get_coordinates, insert_intersection_in_polygon, \
+    densify_linestring
 from isoxmlviz.webmap import WebMap
 
 
@@ -447,7 +448,15 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                     center = shapely.geometry.Point(center_pnts[0])
 
                     # outer perimiter of pivot
+                    # poly = center.buffer(radius,resolution=1000)
+
                     poly = center.buffer(radius)
+                    print(len(poly.exterior.coords))
+                    if len(a_pnts) > 0 :
+                        poly =insert_intersection_in_polygon(poly,shapely.LineString(center_pnts+a_pnts))
+                        print(len(poly.exterior.coords))
+                    if len(b_pnts) > 0:
+                        poly = insert_intersection_in_polygon(poly,shapely.LineString(center_pnts+b_pnts))
 
                     def calculate_angle(point1, point2):
                         x1, y1 = point1.x, point1.y
@@ -475,17 +484,16 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                         if len(a_pnts) > 0 and len(b_pnts) > 0:
                             a_angle = calculate_angle(center, shapely.geometry.Point(a_pnts[0]))
                             b_angle = calculate_angle(center, shapely.geometry.Point(b_pnts[0]))
-                            # print('A %f B %f' % (a_angle, b_angle))
-                            # print([calculate_angle(center, shapely.geometry.Point(p)) for p in line.coords     ])
-                            # We should probably add the a and b points to the line as its will make sure it terminates at the a and b angles
+                            # we just need more points if the polygon is with no point between A and B. We make sure there is a point per 1m so if less than that it wont work
                             cheese =  [p
 
                                        if not is_angle_between(calculate_angle(center, shapely.geometry.Point(p)), a_angle,
-                                                         b_angle) else (center.x,center.y)
+                                                         b_angle)  else (center.x,center.y)
 
 
-                                       for p in line.coords
+                                       for p in densify_linestring(line, max_segment_length=1.0).coords
                                        ]
+
                             return cheese
                         else:
                             return line
@@ -499,9 +507,9 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                     web_map.add(base_line_string, tooltip=designator + '-pivot-boundary', style={'color': 'black'},
                                 group=guidance_plot_group)
 
-                    # web_map.add_marker("C", center, group=guidance_plot_group)
-                    # web_map.add_marker("A "+str(calculate_angle(center, shapely.geometry.Point(a_pnts[0]))), shapely.Point(a_pnts), group=guidance_plot_group)
-                    # web_map.add_marker("B "+ str(calculate_angle(center, shapely.geometry.Point(b_pnts[0]))), shapely.Point(b_pnts), group=guidance_plot_group)
+                    web_map.add_marker("C", center, group=guidance_plot_group)
+                    web_map.add_marker("A "+str(calculate_angle(center, shapely.geometry.Point(a_pnts[0]))), shapely.Point(a_pnts), group=guidance_plot_group)
+                    web_map.add_marker("B "+ str(calculate_angle(center, shapely.geometry.Point(b_pnts[0]))), shapely.Point(b_pnts), group=guidance_plot_group)
 
                     if "C" in line.attrib.keys():
                         width = int(line.attrib.get("C")) / 1000 if "C" in line.attrib.keys() else 1
@@ -664,7 +672,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
                     g = web_map.create_group('GuidanceLines-' + str(designator) + '_replicated_GPNs')
                     for trimmed_line in [item for sublist in guidance_lines for item in sublist]:
-                        web_map.addPoly(trimmed_line, tooltip=designator,
+                        web_map.add(trimmed_line, tooltip=designator,
                                         style={'color': 'purple', 'z-index': '0', 'opacity': '0.3'},
                                         group=g)
 

@@ -2,7 +2,7 @@ from itertools import tee
 
 # import shapely.geometry as SHP
 from shapely.geometry import Point, Polygon, MultiPoint, LineString
-
+from shapely.ops import linemerge
 '''utility function to iterate a list in pairs'''
 
 
@@ -91,3 +91,77 @@ def extract_line_within(base_line: LineString, polygon: Polygon):
         if mid_point.within(polygon):
             lines.append(line)
     return lines
+
+
+def insert_intersection_in_polygon(polygon: Polygon, line: LineString):
+    # Get the intersection points
+    intersection = polygon.intersection(line)
+
+    # Collect all intersection points
+    if intersection.is_empty:
+        print("No intersection")
+        new_polygon = polygon
+    else:
+        intersection_points = []
+        intersection_points.append(Point(intersection.coords[-1]))
+        # if intersection.geom_type == "Point":
+        #     intersection_points = [intersection]
+        # elif intersection.geom_type == "MultiPoint":
+        #     intersection_points = list(intersection.geoms)
+        # elif intersection.geom_type in ["LineString", "MultiLineString"]:
+        #     # Convert LineString(s) to Points
+        #     merged = linemerge(intersection)
+        #     if merged.geom_type == "LineString":
+        #         intersection_points = [Point(merged.coords[0]), Point(merged.coords[-1])]
+        #     elif merged.geom_type == "MultiLineString":
+        #         intersection_points = []
+        #         for ls in merged.geoms:
+        #             intersection_points.append(Point(ls.coords[0]))
+        #             intersection_points.append(Point(ls.coords[-1]))
+        #     else:
+        #         raise ValueError("Unexpected merged type:", merged.geom_type)
+        # else:
+        #     raise ValueError("Unexpected intersection type:", intersection.geom_type)
+
+        # Original polygon coordinates (excluding the closing point)
+        coords = list(polygon.exterior.coords[:-1])
+
+        # Insert intersection points into the right place
+        new_coords = []
+        for i in range(len(coords)):
+            a = Point(coords[i])
+            b = Point(coords[(i + 1) % len(coords)])
+            segment = LineString([a, b])
+            new_coords.append((a.x, a.y))
+
+            for ip in intersection_points:
+                if segment.distance(ip) < 1e-8 and segment.project(ip) > 0 and segment.project(ip) < segment.length:
+                    # Only insert if truly on the segment and not a vertex
+                    if (ip.x, ip.y) not in new_coords:
+                        new_coords.append((ip.x, ip.y))
+
+        # Re-close the polygon
+        new_coords.append(new_coords[0])
+        new_polygon = Polygon(new_coords)
+    return new_polygon
+
+
+def densify_linestring(linestring, max_segment_length):
+    coords = list(linestring.coords)
+    new_coords = []
+
+    for i in range(len(coords) - 1):
+        start = Point(coords[i])
+        end = Point(coords[i + 1])
+        segment = LineString([start, end])
+        length = segment.length
+
+        num_segments = max(int(length // max_segment_length), 1)
+
+        for j in range(num_segments):
+            fraction = j / num_segments
+            point = segment.interpolate(fraction, normalized=True)
+            new_coords.append((point.x, point.y))
+
+    new_coords.append(coords[-1])  # ensure the final point is added
+    return LineString(new_coords)

@@ -58,15 +58,17 @@ class WebMap:
                 tiles='https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
                 attr='Google',
                 name='Google Maps',
-                overlay=True,
-                control=True
+                overlay=False,
+                control=True,
+                show=False
             ),
             'Google Satellite': folium.TileLayer(
                 tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
                 attr='Google',
                 name='Google Satellite',
                 overlay=True,
-                control=True
+                control=True,
+                show= False
             ),
             'Google Terrain': folium.TileLayer(
                 tiles='https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
@@ -79,8 +81,9 @@ class WebMap:
                 tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
                 attr='Google',
                 name='Google Satellite',
-                overlay=True,
-                control=True
+                overlay=False,
+                control=True,
+                show=False
             ),
             'Esri Satellite': folium.TileLayer(
                 tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',

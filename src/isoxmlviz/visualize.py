@@ -11,8 +11,8 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection, LineCollection
 from shapely.geometry import LineString, JOIN_STYLE, MultiLineString, MultiPoint
 import math
-from isoxmlviz.LineStringUtil import extract_lines_within, get_coordinates, insert_intersection_in_polygon, \
-    densify_linestring
+from isoxmlviz.LineStringUtil import extract_lines_within, get_coordinates
+from isoxmlviz.Pivot import pivot_arch_line_ab, calculate_angle
 from isoxmlviz.webmap import WebMap
 
 
@@ -448,57 +448,9 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                     center = shapely.geometry.Point(center_pnts[0])
 
                     # outer perimiter of pivot
-                    # poly = center.buffer(radius,resolution=1000)
-
                     poly = center.buffer(radius)
-                    print(len(poly.exterior.coords))
-                    if len(a_pnts) > 0 :
-                        poly =insert_intersection_in_polygon(poly,shapely.LineString(center_pnts+a_pnts))
-                        print(len(poly.exterior.coords))
-                    if len(b_pnts) > 0:
-                        poly = insert_intersection_in_polygon(poly,shapely.LineString(center_pnts+b_pnts))
 
-                    def calculate_angle(point1, point2):
-                        x1, y1 = point1.x, point1.y
-                        x2, y2 = point2.x, point2.y
-
-                        angle = math.atan2(y2 - y1, x2 - x1)
-                        angle_degrees = math.degrees(angle)
-                        normalized_degrees = (angle_degrees  + 360) % 360
-                        return normalized_degrees
-
-                    def is_angle_between(angle, start_angle, end_angle):
-                        # Normalize angles to be within the range [0, 360)
-                        # angle = angle % 360
-                        # start_angle = start_angle % 360
-                        # end_angle = end_angle % 360
-
-                        # Handle the case where end_angle is smaller than start_angle
-                        if start_angle <= end_angle:
-                            return start_angle >= angle >= end_angle
-                        else:
-                            # Angle range wraps around the circle (e.g., start_angle = 330, end_angle = 30)
-                            return start_angle <= angle or angle <= end_angle
-
-                    def filter_pivot_line_ab(line):
-                        if len(a_pnts) > 0 and len(b_pnts) > 0:
-                            a_angle = calculate_angle(center, shapely.geometry.Point(a_pnts[0]))
-                            b_angle = calculate_angle(center, shapely.geometry.Point(b_pnts[0]))
-                            # we just need more points if the polygon is with no point between A and B. We make sure there is a point per 1m so if less than that it wont work
-                            cheese =  [p
-
-                                       if not is_angle_between(calculate_angle(center, shapely.geometry.Point(p)), a_angle,
-                                                         b_angle)  else (center.x,center.y)
-
-
-                                       for p in densify_linestring(line, max_segment_length=1.0).coords
-                                       ]
-
-                            return cheese
-                        else:
-                            return line
-
-                    base_line_string = LineString(filter_pivot_line_ab(poly.exterior))
+                    base_line_string = LineString(pivot_arch_line_ab(center, a_pnts,b_pnts,poly.exterior))
 
                     patch = LineCollection([base_line_string.coords], linewidths=1.5,
                                            edgecolors="black", zorder=7)
@@ -507,9 +459,9 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                     web_map.add(base_line_string, tooltip=designator + '-pivot-boundary', style={'color': 'black'},
                                 group=guidance_plot_group)
 
-                    web_map.add_marker("C", center, group=guidance_plot_group)
-                    web_map.add_marker("A "+str(calculate_angle(center, shapely.geometry.Point(a_pnts[0]))), shapely.Point(a_pnts), group=guidance_plot_group)
-                    web_map.add_marker("B "+ str(calculate_angle(center, shapely.geometry.Point(b_pnts[0]))), shapely.Point(b_pnts), group=guidance_plot_group)
+                    # web_map.add_marker("C", center, group=guidance_plot_group)
+                    # web_map.add_marker("A "+str(calculate_angle(center, shapely.geometry.Point(a_pnts[0]))), shapely.Point(a_pnts), group=guidance_plot_group)
+                    # web_map.add_marker("B "+ str(calculate_angle(center, shapely.geometry.Point(b_pnts[0]))), shapely.Point(b_pnts), group=guidance_plot_group)
 
                     if "C" in line.attrib.keys():
                         width = int(line.attrib.get("C")) / 1000 if "C" in line.attrib.keys() else 1
@@ -518,7 +470,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
                         for offset in range(1, int((radius / width) + 1)):
                             offset_line = LineString(
-                                filter_pivot_line_ab(center.buffer(offset * width - (width / 2.0)).exterior))
+                                pivot_arch_line_ab(center, a_pnts,b_pnts,center.buffer(offset * width - (width / 2.0)).exterior))
                             if isinstance(offset_line, MultiLineString):
                                 for line in offset_line:
                                     lines.append(line)

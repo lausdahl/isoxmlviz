@@ -146,22 +146,3 @@ def insert_intersection_in_polygon(polygon: Polygon, line: LineString):
     return new_polygon
 
 
-def densify_linestring(linestring, max_segment_length):
-    coords = list(linestring.coords)
-    new_coords = []
-
-    for i in range(len(coords) - 1):
-        start = Point(coords[i])
-        end = Point(coords[i + 1])
-        segment = LineString([start, end])
-        length = segment.length
-
-        num_segments = max(int(length // max_segment_length), 1)
-
-        for j in range(num_segments):
-            fraction = j / num_segments
-            point = segment.interpolate(fraction, normalized=True)
-            new_coords.append((point.x, point.y))
-
-    new_coords.append(coords[-1])  # ensure the final point is added
-    return LineString(new_coords)

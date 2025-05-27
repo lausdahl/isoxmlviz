@@ -1,6 +1,11 @@
 import folium
 import pymap3d
 
+import logging
+
+logger = logging.getLogger("isoxmlviz")
+logger.setLevel(logging.DEBUG)
+
 ell_wgs84 = pymap3d.Ellipsoid.from_name('wgs84')
 
 
@@ -139,7 +144,7 @@ class WebMap:
                     ).add_to(self)
 
             except:
-                print("Could not display {}".format(name))
+                logger.error("Could not display {}".format(name))
 
         # Add EE drawing method to folium.
         # folium.Map.add_ee_layer = add_ee_layer

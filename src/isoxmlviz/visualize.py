@@ -14,7 +14,10 @@ import math
 from isoxmlviz.LineStringUtil import extract_lines_within, get_coordinates
 from isoxmlviz.Pivot import pivot_arch_line_ab, calculate_angle
 from isoxmlviz.webmap import WebMap
+import logging
 
+logger = logging.getLogger("isoxmlviz")
+logger.setLevel(logging.DEBUG)
 
 def PolygonPatch(polygon, **kwargs):
     """Constructs a matplotlib patch from a geometric object
@@ -142,9 +145,9 @@ def main():
                 for fname in zip.namelist():
                     if fname.endswith("TASKDATA.XML") or fname.endswith("TASKDATA.xml"):
                         if fname.endswith("TASKDATA.xml") or fname != 'TASKDATA/TASKDATA.XML':
-                            print("Invalid case in filename: '%s'" % fname, file=sys.stderr)
+                            logger.error("Invalid case in filename: '%s'" % fname)
                         with zip.open(fname) as f:
-                            print(fname)
+                            logger.debug(fname)
                             tree = ET.parse(f)
                             show_task_file(args.version_prefix, fname.replace('/', '_'), tree, save_pdf,
                                            gpn_filter=args.gpn_filter, save_svg=save_svg, hide=hide_plot,
@@ -152,7 +155,7 @@ def main():
                                            output_base_name=args.output_base_name, groups=web_groups)
         else:
             if args.file.endswith("TASKDATA.xml"):
-                print("Invalid case in filename: '%s'" % args.file, file=sys.stderr)
+                logger.error("Invalid case in filename: '%s'" % args.file)
             tree = ET.parse(args.file)
             show_task_file(args.version_prefix, Path(args.file).name, tree, save_pdf, gpn_filter=args.gpn_filter,
                            save_svg=save_svg, hide=hide_plot, use_subplot=args.compact, web_map=web_map,
@@ -284,13 +287,13 @@ def get_polygon_with_interior(ref, pln, exterior_line):
     try:
         return SHP.Polygon(exterior_points, [p.exterior.coords for p in interiors])
     except ValueError:
-        print("Invalid polygon")
+        logger.error("Invalid polygon")
         return None
 
 def plot_all_pln(ax, parent_map, web_map, ref, root, polygon_type_groups):
     for pln in root.findall(".//PLN"):
         designator = pln.attrib.get("C")
-        print("Processing line '%s'" % designator)
+        logger.debug("Processing line '%s'" % designator)
 
         for polygon in get_expanded_polygons(ref, pln):
             # polygon = get_polygon(ref, pln)
@@ -370,7 +373,7 @@ def get_pnts(node, ref, pnt_type_filter=None) -> [shapely.geometry.Point]:
 
 def plot_all_pnt(ax, parent_map, web_map, ref, root, line_type_groups=None, gpn_filter=None):
     for pnt in root.findall("./PNT"):
-        print("Processing line '%s'" % pnt.attrib.get("B") if 'B' in pnt.attrib else 'No Designator')
+        logger.debug("Processing line '%s'" % pnt.attrib.get("B") if 'B' in pnt.attrib else 'No Designator')
         p_type = int(pnt.attrib.get("A"))
         if p_type not in [1, 2, 3, 4, 5, 10, 11]:
             continue
@@ -386,7 +389,7 @@ def plot_all_pnt(ax, parent_map, web_map, ref, root, line_type_groups=None, gpn_
 
 def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filter=None):
     for line in root.findall(".//LSG"):
-        print("Processing line '%s'" % line.attrib.get("B"))
+        logger.debug("Processing line '%s'" % line.attrib.get("B"))
 
         points = get_pnts(line, ref)
 
@@ -410,13 +413,13 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                     continue
 
                 if not "C" in parent.attrib.keys():
-                    print("Invalid GPN: " + str(parent))
+                    logger.error("Invalid GPN: " + str(parent))
                     continue
 
                 gpn_type = int(parent.attrib.get("C"))
 
                 if not gpn_type in [1, 2, 3, 4, 5]:
-                    print("GPN %d not implemented" % gpn_type)
+                    logger.error("GPN %d not implemented" % gpn_type)
                     continue
 
                 boundary_polygons = [get_polygon(ref, p) for p in parent_map[parent].findall('./PLN') if p is not None]
@@ -434,7 +437,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                     #     web_map.add_marker(designator + '-B-pivot', shapely.geometry.Point(b_pnts[0]), group=guidance_plot_group)
 
                     if not 'H' in parent.attrib.keys() or len(center_pnts) == 0:
-                        print('Invalid pivot')
+                        logger.error('Invalid pivot')
                         continue
 
                     pivot_cutout = None
@@ -506,7 +509,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                 if gpn_type == 2:
                     # calculate second point
                     if "G" not in parent.attrib.keys():
-                        print("A+ missing angle")
+                        logger.error("A+ missing angle")
                         continue
                     angle = float(parent.attrib.get("G"))
                     # the compas heading is clockwise and the unit circle is counter clockwise
@@ -525,7 +528,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
                     # we dont know by how much
                     def getExtrapoledLine(p1, p2, ext_length, from_start=False):
-                        print("Extending line  from start %s" % str(from_start))
+                        logger.debug("Extending line  from start %s" % str(from_start))
 
                         direction_vector = (p2[0] - p1[0], p2[1] - p1[1])
 
@@ -640,7 +643,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
 
             else:
                 if len(points) < 2:
-                    print("Too few points in line skipping: " + str(line))
+                    logger.error("Too few points in line skipping: " + str(line))
                     continue
                     # isoxml 3 guidance line
 
@@ -690,7 +693,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
             color = get_color(line.attrib, 'E', 'brown')
             designator = line.attrib.get("B")
             base_line_string = LineString([(p[0], p[1]) for p in points])
-            print(base_line_string.length)
+            logger.debug(base_line_string.length)
             if designator:
                 ax.plot([p[0] for p in points], [p[1] for p in points], label=designator, color=color)
             else:

@@ -554,7 +554,11 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                     if parent_map[parent_map[parent]].tag == "PFD":
                         boundary = get_polygon(ref, parent_map[parent_map[parent]].find('.//PLN[@A="1"]'))
                         if boundary:
-                            base_line_string.intersection(boundary)
+                            try:
+                                base_line_string.intersection(boundary)
+                            except shapely.errors.GEOSException as e:
+                                # well it didnt work
+                                pass
                         # if boundary:
                         #     first, last = base_line_string.boundary
                         #     ext_a_length = first.distance(boundary.exterior)

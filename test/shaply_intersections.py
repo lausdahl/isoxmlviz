@@ -9,6 +9,12 @@ from isoxmlviz.LineStringUtil import is_point_on_line, extract_line_within
 from isoxmlviz.visualize import PolygonPatch
 
 
+def listOfGeomToCoords(geom_list):
+    coords = []
+    for geom in geom_list:
+        coords.append(geom.coords)
+    return coords
+
 class ShapelyIntersectionTest(unittest.TestCase):
 
     def test_point_on_line(self):
@@ -18,42 +24,44 @@ class ShapelyIntersectionTest(unittest.TestCase):
         self.assertTrue(is_point_on_line(a, b, p))
         self.assertFalse(is_point_on_line(a, b, [0.4, 5.5]))
 
+
+
     def test_inter(self):
         polygon = SHP.Polygon([[0, 0], [0, 10], [5, 6], [10, 10], [10, 0]])
         line = SHP.LineString([(-5, -5), (5, 5)])
         fig, ax = plt.subplots()
-        ax.add_collection(LineCollection([line], edgecolors="black"))
+        ax.add_collection(LineCollection([line.coords], edgecolors="black"))
         ax.add_collection(
-            LineCollection(extract_line_within(line, polygon), linewidths=10, edgecolors="black", alpha=0.3, zorder=3))
+            LineCollection(listOfGeomToCoords(extract_line_within(line, polygon)), linewidths=10, edgecolors="black", alpha=0.3, zorder=3))
 
         line2s = SHP.LineString([(-5, 8), (15, 8)])
-        ax.add_collection(LineCollection([line2s], edgecolors="black"))
+        ax.add_collection(LineCollection([line2s.coords], edgecolors="black"))
         ax.add_collection(
-            LineCollection(extract_line_within(line2s, polygon), linewidths=10, edgecolors="black", alpha=0.3,
+            LineCollection(listOfGeomToCoords(extract_line_within(line2s, polygon)), linewidths=10, edgecolors="black", alpha=0.3,
                            zorder=3))
 
         line2s = SHP.LineString([(-5, 8), (8, 7)])
-        ax.add_collection(LineCollection([line2s], edgecolors="black"))
+        ax.add_collection(LineCollection([line2s.coords], edgecolors="black"))
         ax.add_collection(
-            LineCollection(extract_line_within(line2s, polygon), linewidths=10, edgecolors="black", alpha=0.3,
+            LineCollection(listOfGeomToCoords(extract_line_within(line2s, polygon)), linewidths=10, edgecolors="black", alpha=0.3,
                            zorder=3))
 
         line2s = SHP.LineString([(6, 5), (15, 7)])
-        ax.add_collection(LineCollection([line2s], edgecolors="black"))
+        ax.add_collection(LineCollection([line2s.coords], edgecolors="black"))
         ax.add_collection(
-            LineCollection(extract_line_within(line2s, polygon), linewidths=10, edgecolors="black", alpha=0.3,
+            LineCollection(listOfGeomToCoords(extract_line_within(line2s, polygon)), linewidths=10, edgecolors="black", alpha=0.3,
                            zorder=3))
 
         line2s = SHP.LineString([(2,2), (15, 2)])
-        ax.add_collection(LineCollection([line2s], edgecolors="black"))
+        ax.add_collection(LineCollection([line2s.coords], edgecolors="black"))
         ax.add_collection(
-            LineCollection(extract_line_within(line2s, polygon), linewidths=10, edgecolors="black", alpha=0.3,
+            LineCollection(listOfGeomToCoords(extract_line_within(line2s, polygon)), linewidths=10, edgecolors="black", alpha=0.3,
                            zorder=3))
 
         line2s = SHP.LineString([(2, -1), (15, 3)])
-        ax.add_collection(LineCollection([line2s], edgecolors="black"))
+        ax.add_collection(LineCollection([line2s.coords], edgecolors="black"))
         ax.add_collection(
-            LineCollection(extract_line_within(line2s, polygon), linewidths=10, edgecolors="black", alpha=0.3,
+            LineCollection(listOfGeomToCoords(extract_line_within(line2s, polygon)), linewidths=10, edgecolors="black", alpha=0.3,
                            zorder=3))
 
         patch = PolygonPatch(polygon.buffer(0), alpha=0.1)

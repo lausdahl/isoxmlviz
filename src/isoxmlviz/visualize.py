@@ -475,7 +475,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                             offset_line = LineString(
                                 pivot_arch_line_ab(center, a_pnts,b_pnts,center.buffer(offset * width - (width / 2.0)).exterior))
                             if isinstance(offset_line, MultiLineString):
-                                for line in offset_line:
+                                for line in offset_line.geoms:
                                     lines.append(line)
                             else:
                                 lines.append(offset_line)

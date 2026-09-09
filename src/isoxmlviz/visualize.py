@@ -612,7 +612,7 @@ def plot_all_lsg(ax, parent_map, web_map, ref, root, line_type_groups, gpn_filte
                                 lines.append(offset_line)
                     if number_of_swaths_right > 0:
                         for offset in range(1, number_of_swaths_right + 1):
-                            offset_line = base_line_string.parallel_offset(width * offset * -1, 'right',
+                            offset_line = base_line_string.parallel_offset(width * offset , 'right',
                                                                            join_style=JOIN_STYLE.mitre)
                             if isinstance(offset_line, MultiLineString):
                                 for line in offset_line.geoms:

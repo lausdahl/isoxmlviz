@@ -217,5 +217,4 @@ class WebMap:
     def save(self, path):
         folium.LayerControl().add_to(self.m)
         self.m.fit_bounds(self.m.get_bounds(), padding=(30, 30))
-        self.m._repr_html_()
         self.m.save(path)
